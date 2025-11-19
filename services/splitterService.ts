@@ -28,7 +28,10 @@ export const splitText = (text: string, config: SplitConfig): ChunkItem[] => {
       break;
     }
     case SplitMode.LINE: {
-      const lines = text.split('\n');
+      // Split by newline
+      // Filter out empty lines (or whitespace only) so they don't count as chunks
+      const lines = text.split('\n').filter(line => line.trim().length > 0);
+      
       const perChunk = config.lineCount || 10;
       for (let i = 0; i < lines.length; i += perChunk) {
         rawChunks.push(lines.slice(i, i + perChunk).join('\n'));
@@ -56,12 +59,16 @@ export const splitText = (text: string, config: SplitConfig): ChunkItem[] => {
       rawChunks = [text];
   }
 
+  // Filter out purely whitespace chunks
+  // This acts as a final sanitizer for all modes
+  const cleanChunks = rawChunks.filter(c => c.trim().length > 0);
+
   // Apply Batching
   const batchedChunks: string[] = [];
   const batchSize = Math.max(1, config.batchSize);
   
-  for (let i = 0; i < rawChunks.length; i += batchSize) {
-    batchedChunks.push(rawChunks.slice(i, i + batchSize).join('\n\n'));
+  for (let i = 0; i < cleanChunks.length; i += batchSize) {
+    batchedChunks.push(cleanChunks.slice(i, i + batchSize).join('\n\n'));
   }
 
   // Convert to ChunkItems
