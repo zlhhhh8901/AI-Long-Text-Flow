@@ -9,12 +9,14 @@ export const processChunkWithLLM = async (
     throw new Error("API Key is missing");
   }
 
+  // Construct System Message: Base System Prompt + Pre-Prompt (if any)
+  const systemContent = prePrompt 
+    ? `${config.systemPrompt}\n\n${prePrompt}` 
+    : config.systemPrompt;
+
   const messages = [
-    { role: 'system', content: config.systemPrompt },
-    { 
-      role: 'user', 
-      content: `${prePrompt ? prePrompt + '\n\n' : ''}${text}` 
-    }
+    { role: 'system', content: systemContent },
+    { role: 'user', content: text }
   ];
 
   // Remove trailing slash from baseUrl if present

@@ -3,7 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { PasteModal } from './components/PasteModal';
 import { ResultCard } from './components/ResultCard';
-import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, SplitConfig } from './types';
+import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, PromptMode, SplitConfig } from './types';
 import { splitText } from './services/splitterService';
 import { processChunkWithLLM } from './services/llmService';
 import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Activity } from 'lucide-react';
@@ -21,6 +21,7 @@ function App() {
   const [prePrompt, setPrePrompt] = useState('');
   const [isParallel, setIsParallel] = useState(false);
   const [concurrencyLimit, setConcurrencyLimit] = useState(3);
+  const [promptMode, setPromptMode] = useState<PromptMode>('every');
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeRequestCount, setActiveRequestCount] = useState(0); // Visual counter
@@ -40,8 +41,6 @@ function App() {
   useEffect(() => {
     if (sourceText) {
         // Note: This resets the chunks. If users had results, they are lost when config changes.
-        // This is expected behavior for a "slicer" tool - changing slice params invalidates previous slices.
-        // To improve UX, we only reset if the resulting structure is different, but for v1 a full reset is safer.
         const newChunks = splitText(sourceText, splitConfig);
         setChunks(newChunks);
     } else {
@@ -172,7 +171,17 @@ function App() {
             activeRequestsRef.current++;
             setActiveRequestCount(activeRequestsRef.current);
 
-            processChunkWithLLM(chunk.rawContent, appConfig, prePrompt)
+            // Determine specific prompt for this chunk based on Prompt Mode
+            let chunkPrePrompt = prePrompt;
+            if (promptMode === 'first' && !isParallel) {
+                // If 'first' mode is active and we are in serial, only send prompt for the first chunk
+                // Note: chunk.index is 1-based from splitterService
+                if (chunk.index !== 1) {
+                    chunkPrePrompt = '';
+                }
+            }
+
+            processChunkWithLLM(chunk.rawContent, appConfig, chunkPrePrompt)
                 .then(result => {
                     updateChunkStatus(chunk.id, ProcessingStatus.SUCCESS, result);
                 })
@@ -188,7 +197,7 @@ function App() {
 
         return newChunks;
     });
-  }, [appConfig, prePrompt, isParallel, concurrencyLimit, updateChunkStatus]);
+  }, [appConfig, prePrompt, isParallel, concurrencyLimit, updateChunkStatus, promptMode]);
 
 
   // Watcher to kickstart or keep queue moving when state changes
@@ -222,6 +231,8 @@ function App() {
         setIsParallel={setIsParallel}
         concurrencyLimit={concurrencyLimit}
         setConcurrencyLimit={setConcurrencyLimit}
+        promptMode={promptMode}
+        setPromptMode={setPromptMode}
         disabled={isProcessing}
       />
 
@@ -312,16 +323,23 @@ function App() {
                 </div>
             ) : (
                 <div className="space-y-4 max-w-4xl mx-auto pb-20">
-                    {chunks.map(chunk => (
-                        <ResultCard 
-                            key={chunk.id} 
-                            chunk={chunk} 
-                            onRetry={handleRetry} 
-                            systemPrompt={appConfig.systemPrompt}
-                            prePrompt={prePrompt}
-                            model={appConfig.model}
-                        />
-                    ))}
+                    {chunks.map(chunk => {
+                        // Calculate effective prompt for preview purposes
+                        const effectivePrePrompt = (promptMode === 'first' && !isParallel && chunk.index > 1) 
+                            ? '' 
+                            : prePrompt;
+                        
+                        return (
+                            <ResultCard 
+                                key={chunk.id} 
+                                chunk={chunk} 
+                                onRetry={handleRetry} 
+                                systemPrompt={appConfig.systemPrompt}
+                                prePrompt={effectivePrePrompt}
+                                model={appConfig.model}
+                            />
+                        );
+                    })}
                 </div>
             )}
         </div>

@@ -12,6 +12,8 @@ export enum ProcessingStatus {
   ERROR = 'error',
 }
 
+export type PromptMode = 'every' | 'first';
+
 export interface ChunkItem {
   id: string;
   index: number;
@@ -43,7 +45,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   baseUrl: 'https://api.openai.com/v1',
   model: 'gpt-4o',
   temperature: 0.7,
-  systemPrompt: 'You are a helpful assistant. Process the following text fragment.',
+  systemPrompt: '',
   concurrencyLimit: 3,
 };
 

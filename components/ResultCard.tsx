@@ -63,8 +63,8 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   const requestPreview = {
     model: model,
     messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: `${prePrompt ? prePrompt + '\n\n' : ''}${chunk.rawContent}` }
+      { role: 'system', content: prePrompt ? `${systemPrompt}\n\n${prePrompt}` : systemPrompt },
+      { role: 'user', content: chunk.rawContent }
     ]
   };
 

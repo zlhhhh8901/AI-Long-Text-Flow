@@ -1,6 +1,6 @@
 import React from 'react';
-import { SplitConfig, SplitMode } from '../types';
-import { AlignJustify, Scissors, FileText, Type, Layers, Info } from 'lucide-react';
+import { PromptMode, SplitConfig, SplitMode } from '../types';
+import { AlignJustify, Scissors, FileText, Type, Layers, Info, Zap, ArrowDownToLine } from 'lucide-react';
 
 interface SidebarProps {
   splitConfig: SplitConfig;
@@ -11,6 +11,8 @@ interface SidebarProps {
   setIsParallel: (val: boolean) => void;
   concurrencyLimit: number;
   setConcurrencyLimit: (val: number) => void;
+  promptMode: PromptMode;
+  setPromptMode: (val: PromptMode) => void;
   disabled?: boolean;
 }
 
@@ -23,6 +25,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsParallel,
   concurrencyLimit,
   setConcurrencyLimit,
+  promptMode,
+  setPromptMode,
   disabled = false
 }) => {
   return (
@@ -135,14 +139,50 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
             <FileText size={16} /> Prompting
           </h3>
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5">Pre-prompt (User Message Header)</label>
-            <textarea
-              value={prePrompt}
-              onChange={(e) => setPrePrompt(e.target.value)}
-              className="w-full h-32 p-3 bg-slate-50 border border-slate-200 rounded text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
-              placeholder="e.g., 'Translate the following text to Spanish:'"
-            />
+          <div className="space-y-4">
+            <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Pre-prompt (System Instruction)</label>
+                <textarea
+                value={prePrompt}
+                onChange={(e) => setPrePrompt(e.target.value)}
+                className="w-full h-32 p-3 bg-slate-50 border border-slate-200 rounded text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+                placeholder="e.g., 'Translate the following text to Spanish:'"
+                />
+            </div>
+
+            <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Injection Strategy</label>
+                <div className="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-lg">
+                    <button
+                        onClick={() => setPromptMode('every')}
+                        className={`flex items-center justify-center gap-1 py-2 rounded-md text-xs font-medium transition-all ${
+                            promptMode === 'every'
+                            ? 'bg-white text-primary shadow-sm' 
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                        title="Inject prompt into every chunk (User Mode)"
+                    >
+                        <Zap size={14}/> Every
+                    </button>
+                    <button
+                        onClick={() => setPromptMode('first')}
+                        disabled={isParallel}
+                        className={`flex items-center justify-center gap-1 py-2 rounded-md text-xs font-medium transition-all ${
+                            promptMode === 'first'
+                            ? 'bg-white text-primary shadow-sm' 
+                            : 'text-slate-500 hover:text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed'
+                        }`}
+                        title="Inject prompt only into the first chunk (System Mode)"
+                    >
+                        <ArrowDownToLine size={14}/> First Only
+                    </button>
+                </div>
+                {isParallel && promptMode === 'every' && (
+                    <p className="text-[10px] text-slate-400 mt-1 px-1">
+                        "First Only" is disabled in Parallel mode.
+                    </p>
+                )}
+            </div>
           </div>
         </section>
 
@@ -162,7 +202,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Serial
              </button>
              <button
-                onClick={() => setIsParallel(true)}
+                onClick={() => {
+                    setIsParallel(true);
+                    setPromptMode('every'); // Force 'every' when switching to parallel
+                }}
                 className={`flex-1 py-1.5 text-xs font-medium rounded transition-all ${isParallel ? 'bg-white text-primary shadow-sm' : 'text-slate-500'}`}
              >
                 Parallel
