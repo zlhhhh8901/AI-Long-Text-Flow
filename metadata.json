@@ -1,0 +1,5 @@
+{
+  "name": "AI Long-Text Flow",
+  "description": "A professional tool for splitting and processing long text using LLMs with serial and parallel execution modes.",
+  "requestFramePermissions": []
+}
