@@ -6,7 +6,7 @@ import { ResultCard } from './components/ResultCard';
 import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, SplitConfig } from './types';
 import { splitText } from './services/splitterService';
 import { processChunkWithLLM } from './services/llmService';
-import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download } from 'lucide-react';
+import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Activity } from 'lucide-react';
 
 function App() {
   // --- State ---
@@ -23,6 +23,7 @@ function App() {
   const [concurrencyLimit, setConcurrencyLimit] = useState(3);
   
   const [isProcessing, setIsProcessing] = useState(false);
+  const [activeRequestCount, setActiveRequestCount] = useState(0); // Visual counter
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
   
@@ -97,6 +98,7 @@ function App() {
     setSourceText('');
     setChunks([]);
     activeRequestsRef.current = 0;
+    setActiveRequestCount(0);
   };
 
   const handleExport = () => {
@@ -168,6 +170,8 @@ function App() {
         // Fire side effects (Requests)
         toTrigger.forEach(chunk => {
             activeRequestsRef.current++;
+            setActiveRequestCount(activeRequestsRef.current);
+
             processChunkWithLLM(chunk.rawContent, appConfig, prePrompt)
                 .then(result => {
                     updateChunkStatus(chunk.id, ProcessingStatus.SUCCESS, result);
@@ -177,6 +181,7 @@ function App() {
                 })
                 .finally(() => {
                     activeRequestsRef.current--;
+                    setActiveRequestCount(activeRequestsRef.current);
                     processQueue(); 
                 });
         });
@@ -245,7 +250,17 @@ function App() {
 
           <div className="flex items-center gap-4">
              {chunks.length > 0 && (
-                 <div className="flex items-center gap-3 mr-4">
+                 <div className="flex items-center gap-4 mr-2">
+                    {/* Status Indicator */}
+                    {isProcessing && (
+                        <div className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+                            <Activity size={14} className="text-blue-500 animate-pulse"/>
+                            <span className="text-xs font-bold text-blue-700">
+                                {isParallel ? `Parallel (${activeRequestCount} active)` : 'Serial Mode'}
+                            </span>
+                        </div>
+                    )}
+
                     <div className="flex flex-col items-end">
                         <span className="text-xs font-bold text-slate-700">{completedCount} / {totalCount}</span>
                         <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
@@ -298,7 +313,14 @@ function App() {
             ) : (
                 <div className="space-y-4 max-w-4xl mx-auto pb-20">
                     {chunks.map(chunk => (
-                        <ResultCard key={chunk.id} chunk={chunk} onRetry={handleRetry} />
+                        <ResultCard 
+                            key={chunk.id} 
+                            chunk={chunk} 
+                            onRetry={handleRetry} 
+                            systemPrompt={appConfig.systemPrompt}
+                            prePrompt={prePrompt}
+                            model={appConfig.model}
+                        />
                     ))}
                 </div>
             )}
