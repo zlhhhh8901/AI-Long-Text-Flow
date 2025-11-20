@@ -331,7 +331,7 @@ function App() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-8 bg-slate-50 scroll-smooth relative">
+        <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 scroll-smooth relative">
             {chunks.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400 animate-fade-in">
                     <div className="w-full max-w-md border-2 border-dashed border-slate-200 rounded-2xl p-10 flex flex-col items-center justify-center bg-white/50 hover:bg-white hover:border-primary/50 transition-all group cursor-pointer" onClick={() => setIsPasteModalOpen(true)}>
@@ -360,7 +360,7 @@ function App() {
                     )}
                 </div>
             ) : (
-                <div className="space-y-6 max-w-4xl mx-auto pb-20 animate-fade-in">
+                <div className="space-y-3 max-w-5xl mx-auto pb-20 animate-fade-in">
                     {chunks.map(chunk => {
                         const effectivePrePrompt = (promptMode === 'first' && !isParallel && chunk.index > 1) 
                             ? '' 
