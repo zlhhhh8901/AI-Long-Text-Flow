@@ -9,7 +9,8 @@ import {
   Zap, 
   ArrowDownToLine, 
   Settings2, 
-  Info 
+  Info,
+  MessageSquare
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,6 +24,8 @@ interface SidebarProps {
   setConcurrencyLimit: (val: number) => void;
   promptMode: PromptMode;
   setPromptMode: (val: PromptMode) => void;
+  isContextual: boolean;
+  setIsContextual: (val: boolean) => void;
   disabled?: boolean;
 }
 
@@ -37,6 +40,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setConcurrencyLimit,
   promptMode,
   setPromptMode,
+  isContextual,
+  setIsContextual,
   disabled = false
 }) => {
   return (
@@ -258,12 +263,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
               
               {!isParallel && (
-                  <div className="flex gap-2 items-start">
-                      <Info size={12} className="text-indigo-400 mt-0.5 shrink-0"/>
-                      <p className="text-[10px] text-slate-500 leading-relaxed">
-                        Processes one chunk at a time. Recommended for reliable ordering and rate limits.
-                      </p>
-                  </div>
+                <>
+                    <div className="animate-fade-in bg-white rounded-lg border border-slate-200 p-2.5">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <div className="relative inline-flex items-center">
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only peer" 
+                                    checked={isContextual}
+                                    onChange={(e) => setIsContextual(e.target.checked)}
+                                />
+                                <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-700 flex items-center gap-1.5">
+                                Continuous Context
+                            </span>
+                        </label>
+                        <div className="mt-2 text-[9px] text-slate-400 leading-relaxed flex gap-1.5 items-start">
+                            <MessageSquare size={10} className="mt-0.5 shrink-0" />
+                            Chunks are sent in a single conversation history.
+                        </div>
+                    </div>
+
+                    <div className="flex gap-2 items-start px-1">
+                        <Info size={12} className="text-indigo-400 mt-0.5 shrink-0"/>
+                        <p className="text-[10px] text-slate-500 leading-relaxed">
+                            Processes one chunk at a time. 
+                            {isContextual ? ' Context is maintained across all chunks.' : ' Each chunk is an independent request.'}
+                        </p>
+                    </div>
+                </>
               )}
           </div>
         </section>

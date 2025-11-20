@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { ChunkItem, ProcessingStatus } from '../types';
-import { CheckCircle2, Circle, Loader2, AlertTriangle, ChevronDown, Copy, RefreshCw, Terminal, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2, AlertTriangle, ChevronDown, Copy, RefreshCw, Terminal, ArrowRight, History } from 'lucide-react';
 
 interface ResultCardProps {
   chunk: ChunkItem;
@@ -9,6 +9,7 @@ interface ResultCardProps {
   systemPrompt: string;
   prePrompt: string;
   model: string;
+  isContextual?: boolean;
 }
 
 export const ResultCard: React.FC<ResultCardProps> = ({ 
@@ -16,7 +17,8 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   onRetry,
   systemPrompt,
   prePrompt,
-  model
+  model,
+  isContextual = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -50,16 +52,36 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   };
 
   // Construct the preview of what is sent to the API
-  const systemParts = [systemPrompt, prePrompt].filter(p => p && p.trim().length > 0);
-  const combinedSystemPrompt = systemParts.join('\n\n');
+  let requestPreview: any = {};
 
-  const requestPreview = {
-    model: model,
-    messages: [
-      ...(combinedSystemPrompt ? [{ role: 'system', content: combinedSystemPrompt }] : []),
-      { role: 'user', content: chunk.rawContent }
-    ]
-  };
+  if (isContextual) {
+      const userContent = prePrompt ? `${prePrompt}\n\n${chunk.rawContent}` : chunk.rawContent;
+      if (chunk.index === 1) {
+           requestPreview = {
+               mode: 'Contextual Session (Start)',
+               system_instruction: systemPrompt || undefined,
+               new_user_message: userContent
+           };
+      } else {
+           requestPreview = {
+               mode: 'Contextual Session (Continue)',
+               previous_context_turns: (chunk.index - 1) * 2,
+               new_user_message: userContent
+           };
+      }
+  } else {
+      const systemParts = [systemPrompt, prePrompt].filter(p => p && p.trim().length > 0);
+      const combinedSystemPrompt = systemParts.join('\n\n');
+
+      requestPreview = {
+        model: model,
+        mode: 'Independent Request',
+        messages: [
+          ...(combinedSystemPrompt ? [{ role: 'system', content: combinedSystemPrompt }] : []),
+          { role: 'user', content: chunk.rawContent }
+        ]
+      };
+  }
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border transition-all duration-200 ${chunk.status === ProcessingStatus.PROCESSING ? 'border-primary/50 shadow-primary/5' : 'border-slate-200 hover:border-slate-300'}`}>
@@ -80,6 +102,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           
           {chunk.status === ProcessingStatus.PROCESSING && (
              <span className="text-[10px] text-slate-400 animate-pulse hidden sm:inline-block">Processing with {model}...</span>
+          )}
+          
+          {isContextual && (
+             <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100 text-[9px] font-semibold">
+                 <History size={10}/>
+                 <span>Context</span>
+             </div>
           )}
         </div>
         
@@ -130,7 +159,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                         onClick={() => setInputTab('preview')}
                         className={`px-2 py-0.5 text-[9px] font-semibold rounded transition-all ${inputTab === 'preview' ? 'bg-indigo-50 text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                     >
-                        JSON
+                        Payload
                     </button>
                 </div>
              </div>

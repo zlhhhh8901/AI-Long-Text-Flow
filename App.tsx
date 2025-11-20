@@ -5,7 +5,7 @@ import { PasteModal } from './components/PasteModal';
 import { ResultCard } from './components/ResultCard';
 import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, PromptMode, SplitConfig } from './types';
 import { splitText } from './services/splitterService';
-import { processChunkWithLLM } from './services/llmService';
+import { processChunkWithLLM, initializeSession, LLMSession } from './services/llmService';
 import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Activity, FileInput, Sparkles } from 'lucide-react';
 
 function App() {
@@ -24,6 +24,7 @@ function App() {
   const [splitConfig, setSplitConfig] = useState<SplitConfig>(DEFAULT_SPLIT_CONFIG);
   const [prePrompt, setPrePrompt] = useState('');
   const [isParallel, setIsParallel] = useState(false);
+  const [isContextual, setIsContextual] = useState(false);
   const [concurrencyLimit, setConcurrencyLimit] = useState(3);
   const [promptMode, setPromptMode] = useState<PromptMode>('every');
   
@@ -36,6 +37,7 @@ function App() {
   // Refs for Queue Management
   const activeRequestsRef = useRef(0);
   const isProcessingRef = useRef(false);
+  const sessionRef = useRef<LLMSession | undefined>(undefined);
   
   useEffect(() => {
     isProcessingRef.current = isProcessing;
@@ -50,6 +52,11 @@ function App() {
         setChunks([]);
     }
   }, [sourceText, splitConfig]);
+
+  // Clear session when critical config changes or source changes
+  useEffect(() => {
+    sessionRef.current = undefined;
+  }, [appConfig.provider, appConfig.apiKey, appConfig.model, appConfig.systemPrompt, isContextual, sourceText]);
 
   const saveConfig = (newConfig: AppConfig) => {
     setAppConfig(newConfig);
@@ -120,6 +127,7 @@ function App() {
     setChunks([]);
     activeRequestsRef.current = 0;
     setActiveRequestCount(0);
+    sessionRef.current = undefined;
   };
 
   const handleExport = () => {
@@ -156,6 +164,19 @@ function App() {
         
         if (processingCount >= limit) return currentChunks;
 
+        // Initialize Session if Contextual Mode and not initialized
+        if (!isParallel && isContextual && !sessionRef.current) {
+            try {
+                sessionRef.current = initializeSession(appConfig);
+            } catch (e: any) {
+                console.error("Failed to init session", e);
+                setIsProcessing(false);
+                // We can't easily update state here for error msg on a specific chunk without iterating
+                // But the next iteration won't run because isProcessing becomes false
+                return currentChunks;
+            }
+        }
+
         let candidates = [...currentChunks];
         let toTrigger: ChunkItem[] = [];
 
@@ -165,6 +186,7 @@ function App() {
                 .filter(c => c.status === ProcessingStatus.IDLE || c.status === ProcessingStatus.WAITING)
                 .slice(0, availableSlots);
         } else {
+            // Serial: Find first incomplete
             const firstIncomplete = candidates.find(c => c.status !== ProcessingStatus.SUCCESS && c.status !== ProcessingStatus.ERROR);
             if (firstIncomplete && (firstIncomplete.status === ProcessingStatus.IDLE || firstIncomplete.status === ProcessingStatus.WAITING)) {
                 toTrigger = [firstIncomplete];
@@ -189,13 +211,17 @@ function App() {
             setActiveRequestCount(activeRequestsRef.current);
 
             let chunkPrePrompt = prePrompt;
-            if (promptMode === 'first' && !isParallel) {
+            if (promptMode === 'first') {
+                // Only first chunk gets the prompt
                 if (chunk.index !== 1) {
                     chunkPrePrompt = '';
                 }
             }
 
-            processChunkWithLLM(chunk.rawContent, appConfig, chunkPrePrompt)
+            // Determine valid session to pass
+            const activeSession = (!isParallel && isContextual) ? sessionRef.current : undefined;
+
+            processChunkWithLLM(chunk.rawContent, appConfig, chunkPrePrompt, activeSession)
                 .then(result => {
                     updateChunkStatus(chunk.id, ProcessingStatus.SUCCESS, result);
                 })
@@ -211,7 +237,7 @@ function App() {
 
         return newChunks;
     });
-  }, [appConfig, prePrompt, isParallel, concurrencyLimit, updateChunkStatus, promptMode]);
+  }, [appConfig, prePrompt, isParallel, concurrencyLimit, updateChunkStatus, promptMode, isContextual]);
 
   useEffect(() => {
     if (isProcessing) {
@@ -261,6 +287,8 @@ function App() {
         setConcurrencyLimit={setConcurrencyLimit}
         promptMode={promptMode}
         setPromptMode={setPromptMode}
+        isContextual={isContextual}
+        setIsContextual={setIsContextual}
         disabled={isProcessing}
       />
 
@@ -294,7 +322,7 @@ function App() {
                  <div className="flex items-center gap-6 mr-2">
                     <div className="flex flex-col min-w-[140px]">
                         <div className="flex justify-between text-xs mb-1.5">
-                            <span className="font-semibold text-slate-500">{isParallel ? 'Parallel' : 'Serial'}</span>
+                            <span className="font-semibold text-slate-500">{isParallel ? 'Parallel' : (isContextual ? 'Serial Context' : 'Serial')}</span>
                             <span className="font-bold text-slate-800">{Math.round(progress)}%</span>
                         </div>
                         <div className="w-36 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -362,7 +390,7 @@ function App() {
             ) : (
                 <div className="space-y-3 max-w-5xl mx-auto pb-20 animate-fade-in">
                     {chunks.map(chunk => {
-                        const effectivePrePrompt = (promptMode === 'first' && !isParallel && chunk.index > 1) 
+                        const effectivePrePrompt = (promptMode === 'first' && chunk.index > 1) 
                             ? '' 
                             : prePrompt;
                         
@@ -374,6 +402,7 @@ function App() {
                                 systemPrompt={appConfig.systemPrompt}
                                 prePrompt={effectivePrePrompt}
                                 model={appConfig.model}
+                                isContextual={!isParallel && isContextual}
                             />
                         );
                     })}
