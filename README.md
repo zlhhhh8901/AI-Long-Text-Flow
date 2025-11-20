@@ -1,42 +1,153 @@
 # AI Long-Text Flow
 
-AI Long-Text Flow is a professional client-side tool designed to process long texts using Large Language Models (LLMs) like GPT-4. It solves the problem of context windows by intelligently splitting text into manageable chunks and processing them either serially or in parallel.
+**AI Long-Text Flow** 是一个用于“把超长文本拆开交给大模型处理”的 Web 工具。
+它围绕一个核心问题设计：**如何在上下文窗口有限的情况下，稳定地用 Gemini、GPT 等 API 处理长文翻译、润色、摘要等任务**。
 
-## Features
+项目提供了一整套流程：文本分片、请求调度、提示词注入、结果管理与导出，尽量减少你手工拆分和粘贴的工作量。
 
-### ✂️ Intelligent Slicer
-Split your text exactly how you need it:
-- **Character Mode**: Split by character count (e.g., every 2000 chars) with smart newline detection to avoid breaking sentences.
-- **Line Mode**: Group text by number of lines. Automatically filters out empty lines to ensure data quality.
-- **Custom Mode**: Use specific strings or Regex (e.g., `/Chapter \d+/`) as delimiters.
+---
 
-### ⚡ Execution Modes
-- **Serial Mode**: Process chunks one by one. Ideal for sequential tasks where order matters or API rate limits are strict.
-- **Parallel Mode**: Process multiple chunks simultaneously. Greatly speeds up bulk translation or summarization tasks. Includes a concurrency slider.
+## 解决什么问题？
 
-### 🧠 Prompt Engineering
-- **System Prompt**: Define the persona of the AI (e.g., "You are a professional translator").
-- **Pre-Prompt**: Add specific instructions (e.g., "Translate to French:").
-- **Injection Strategy**:
-  - **Every Chunk**: The prompt is sent with every chunk (default).
-  - **First Only**: The prompt is only sent with the first chunk (Serial mode only).
+* 大模型上下文窗口有限，长文一次丢不进去。
+* 手动拆分、复制、粘贴文本太麻烦。
+* 批量翻译/润色/摘要时，一个个请求很耗时，也不便调试和追踪。
 
-### 🛡️ Privacy & Security
-- **Client-Side Processing**: All text splitting and logic happen in your browser.
-- **Local Keys**: Your API keys are stored in `localStorage` and sent directly to the API provider. They are never sent to our servers.
+**AI Long-Text Flow** 的目标是：
 
-### 📊 Transparency
-- **Request Preview**: See exactly what JSON payload is being sent to the API.
-- **Visual Status**: Track progress, active threads, and success/error states for every chunk.
-- **Markdown Support**: View and export results in Markdown format.
+* 帮你**自动拆分和打包文本**；
+* 支持**串行或并行调用 API**；
+* 提供**可视化进度与结果导出**，方便重复使用和审阅。
 
-## Getting Started
+---
 
-1. **Configure API**: Click the Settings icon and enter your API Key and Base URL (compatible with OpenAI format).
-2. **Input Text**: Paste text from clipboard or import a file (.txt, .md).
-3. **Slice**: Adjust the splitting settings in the sidebar.
-4. **Prompt**: Set your System Prompt and Pre-Prompt.
-5. **Run**: Click Start.
+## 功能概览
 
-## License
-MIT
+### 1. 文本分片 (Intelligent Slicer)
+
+根据不同任务场景提供多种分片策略：
+
+* **字符模式 (Character Mode)**
+  按字符数拆分（如每 2000 字），带“智能边界检测”：
+  优先在段落或句子末尾截断，尽量保持语义完整。
+
+* **行模式 (Line Mode)**
+  按行数打包（如每 10 行），自动过滤空行，保证上下文紧凑。
+
+* **自定义模式 (Custom Mode)**
+  使用自定义分隔符或正则表达式分割，例如：
+  `第\d+章`、`## .*` 等章节标题。
+
+* **批处理 (Batching)**
+  将多个小分块合并成一个 API 请求，在不超出上下文窗口的前提下减少请求次数、节省费用。
+
+---
+
+### 2. 执行模式 (Execution Modes)
+
+你可以根据任务需求选择并行或串行模式。
+
+* **并行模式 (Parallel Mode)**
+
+  * 多分块同时发送请求，提升整体处理速度。
+  * 提供并发控制滑块，以适配不同服务商的速率限制（Rate Limit）。
+
+* **串行模式 (Serial Mode)**
+
+  * 按顺序逐块处理，适用于小说连载、长文逻辑连贯性要求高的场景。
+  * 支持 **连续上下文 (Continuous Context)**：
+    处理后续分块时会携带之前的历史信息，让模型“记得”前文内容，实现更长范围的上下文衔接。
+
+---
+
+### 3. 提示词注入 (Prompt Engineering)
+
+项目内置了常见提示词注入点，方便你按任务组合出不同行为：
+
+* **系统提示词 (System Prompt)**
+  全局定义模型角色，例如：`你是一名资深科技编辑`。
+
+* **前置提示词 (Pre-Prompt)**
+  针对每个分块附加任务指令，例如：
+  `请将以下内容翻译为流畅的中文：`、`请帮我润色以下段落，并保持原意：`。
+
+* **注入策略**
+
+  * **Every（每块注入）**：
+    每个分块都带上指令，适合并行模式，保证每块都独立可理解。
+  * **First Only（仅首块）**：
+    只在第一块附加指令，适用于串行模式，模拟人与人对话的“先说规则，后续按规则沟通”。
+
+---
+
+### 4. 可视化与结果管理
+
+* **实时状态面板**
+  显示每个分块当前状态：排队中 / 处理中 / 成功 / 错误，方便定位问题。
+
+* **请求预览 (Payload Preview)**
+  在发送前查看即将提交给 API 的完整 JSON payload，有助于调试 Prompt 和参数。
+
+* **结果导出**
+
+  * 一键复制所有结果。
+  * 导出为 Markdown 文件：
+
+    * 仅导出 AI 结果，或
+    * 导出“原文 + 结果对照”版本，便于审阅与校对。
+
+---
+
+## 如何使用
+
+1. **配置 API**
+
+   * 点击右上角设置图标 (⚙️)。
+   * 选择模型提供商（Google Gemini 或 OpenAI / 自定义 API）。
+   * 填入你的 API Key。
+   * **Key 仅保存在浏览器 LocalStorage 中，不会上传到服务器。**
+
+2. **导入文本**
+
+   * 直接在页面中粘贴文本，或
+   * 拖拽上传 `.txt` / `.md` 文件。
+
+3. **设置分片策略**
+
+   * 在左侧侧边栏中选择：
+
+     * 按字数分片、按行数分片，或
+     * 使用自定义正则 / 分隔符拆分。
+   * 视情况开启批处理（Batching）。
+
+4. **编写提示词**
+
+   * 设置 System Prompt（可选）。
+   * 填写 Pre-Prompt，如：`请翻译成简体中文并保持语气自然`。
+   * 选择注入策略（Every 或 First Only）。
+
+5. **选择执行模式并运行**
+
+   * 选择 串行 / 并行 模式。
+   * 调整并发度（如使用并行模式）。
+   * 点击 **Start Process** 开始处理。
+
+6. **查看与导出结果**
+
+   * 在结果区域查看每个分块的输出。
+   * 如有错误，可单独重试该分块。
+   * 最终将结果复制或导出为 Markdown。
+
+---
+
+## 常见问题
+
+**Q: 需要安装软件吗？**
+A: 不需要。AI Long-Text Flow 是一个 Web 应用，使用现代浏览器打开即可。
+
+**Q: 数据会上传到你们的服务器吗？**
+A: 不会。所有逻辑都在你的浏览器中运行：
+
+* 文本从你的浏览器直接发送到你配置的 AI 服务商（例如 OpenAI、Google）。
+* API Key 存在浏览器 LocalStorage 中，不会上传到第三方服务器。
+  从安全模型上看，它更接近“本地客户端工具”，而不是传统的“云端网页服务”。
