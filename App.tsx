@@ -6,7 +6,7 @@ import { ResultCard } from './components/ResultCard';
 import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, PromptMode, SplitConfig } from './types';
 import { splitText } from './services/splitterService';
 import { processChunkWithLLM, initializeSession, LLMSession } from './services/llmService';
-import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Activity, FileInput, Sparkles } from 'lucide-react';
+import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Activity, FileInput, Sparkles, FileText, MessageSquare } from 'lucide-react';
 
 function App() {
   // --- State ---
@@ -32,6 +32,7 @@ function App() {
   const [activeRequestCount, setActiveRequestCount] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   
   // Refs for Queue Management
@@ -130,21 +131,27 @@ function App() {
     sessionRef.current = undefined;
   };
 
-  const handleExport = () => {
+  const handleExport = (includeInput: boolean) => {
     const content = chunks
       .filter(c => c.result)
-      .map(c => c.result)
+      .map(c => {
+        if (includeInput) {
+            return `### Source (${c.index})\n\n${c.rawContent}\n\n### Response (${c.index})\n\n${c.result}`;
+        }
+        return c.result;
+      })
       .join('\n\n---\n\n');
     
     const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'ai-flow-export.md';
+    a.download = includeInput ? 'ai-flow-export-full.md' : 'ai-flow-export-results.md';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    setIsExportMenuOpen(false);
   };
 
   // --- Processing Engine ---
@@ -331,9 +338,39 @@ function App() {
                     </div>
                     
                     {completedCount > 0 && (
-                        <button onClick={handleExport} className="p-2 text-slate-500 hover:text-primary bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors" title="Export Markdown">
-                            <Download size={20} />
-                        </button>
+                        <div className="relative">
+                            <button 
+                                onClick={() => setIsExportMenuOpen(!isExportMenuOpen)} 
+                                className={`p-2 rounded-lg transition-colors ${isExportMenuOpen ? 'bg-indigo-100 text-primary' : 'text-slate-500 hover:text-primary bg-slate-50 hover:bg-indigo-50'}`} 
+                                title="Export Options"
+                            >
+                                <Download size={20} />
+                            </button>
+                            
+                            {isExportMenuOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-10" onClick={() => setIsExportMenuOpen(false)}></div>
+                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 z-20 animate-fade-in overflow-hidden">
+                                        <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border-b border-slate-100">
+                                            Export Format
+                                        </div>
+                                        <button 
+                                            onClick={() => handleExport(false)}
+                                            className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors flex items-center gap-2"
+                                        >
+                                            <FileText size={14} /> Results Only
+                                        </button>
+                                        <div className="h-px bg-slate-100"></div>
+                                        <button 
+                                            onClick={() => handleExport(true)}
+                                            className="w-full text-left px-4 py-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors flex items-center gap-2"
+                                        >
+                                            <MessageSquare size={14} /> Source & Results
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     )}
                  </div>
              )}
