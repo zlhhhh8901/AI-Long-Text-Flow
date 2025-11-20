@@ -83,6 +83,8 @@ export const ResultCard: React.FC<ResultCardProps> = ({
       };
   }
 
+  const hasOutput = !!chunk.result || !!chunk.errorMsg || chunk.status === ProcessingStatus.PROCESSING;
+
   return (
     <div className={`bg-white rounded-lg shadow-sm border transition-all duration-200 ${chunk.status === ProcessingStatus.PROCESSING ? 'border-primary/50 shadow-primary/5' : 'border-slate-200 hover:border-slate-300'}`}>
       {/* Header - Compact */}
@@ -141,8 +143,8 @@ export const ResultCard: React.FC<ResultCardProps> = ({
       {isExpanded && (
         <div className="grid grid-cols-1 lg:grid-cols-12 border-t border-slate-100 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 animate-slide-up">
           
-          {/* Left Column: Input (Smaller width) */}
-          <div className="lg:col-span-5 flex flex-col bg-slate-50/30 min-h-[180px]">
+          {/* Left Column: Input (Full width if no output yet) */}
+          <div className={`${hasOutput ? 'lg:col-span-5' : 'lg:col-span-12'} flex flex-col bg-slate-50/30 min-h-[180px] transition-all duration-300`}>
              {/* Mini Toolbar */}
              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100/50 bg-slate-50/50">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -181,38 +183,31 @@ export const ResultCard: React.FC<ResultCardProps> = ({
              </div>
           </div>
 
-          {/* Right Column: Output (Larger width) */}
-          <div className="lg:col-span-7 bg-white min-h-[180px] flex flex-col relative">
-            {chunk.result ? (
-                <div className="p-4 flex-1">
-                     <div className="prose prose-sm prose-slate max-w-none prose-p:my-2 prose-headings:my-3 text-sm leading-relaxed text-slate-700">
-                        <ReactMarkdown>{chunk.result}</ReactMarkdown>
+          {/* Right Column: Output (Only shown if there is activity/result) */}
+          {hasOutput && (
+            <div className="lg:col-span-7 bg-white min-h-[180px] flex flex-col relative animate-fade-in">
+                {chunk.result ? (
+                    <div className="p-4 flex-1">
+                        <div className="prose prose-sm prose-slate max-w-none prose-p:my-2 prose-headings:my-3 text-sm leading-relaxed text-slate-700">
+                            <ReactMarkdown>{chunk.result}</ReactMarkdown>
+                        </div>
                     </div>
-                </div>
-            ) : chunk.errorMsg ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                    <div className="w-8 h-8 bg-rose-50 rounded-full flex items-center justify-center mb-2">
-                        <AlertTriangle size={16} className="text-rose-500"/>
+                ) : chunk.errorMsg ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                        <div className="w-8 h-8 bg-rose-50 rounded-full flex items-center justify-center mb-2">
+                            <AlertTriangle size={16} className="text-rose-500"/>
+                        </div>
+                        <p className="text-rose-600 font-medium text-xs">{chunk.errorMsg}</p>
+                        <button onClick={() => onRetry(chunk.id)} className="mt-2 text-[10px] bg-white border border-slate-200 px-2 py-1 rounded hover:bg-slate-50 text-slate-500">Retry</button>
                     </div>
-                    <p className="text-rose-600 font-medium text-xs">{chunk.errorMsg}</p>
-                    <button onClick={() => onRetry(chunk.id)} className="mt-2 text-[10px] bg-white border border-slate-200 px-2 py-1 rounded hover:bg-slate-50 text-slate-500">Retry</button>
-                </div>
-            ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40 pointer-events-none select-none">
-                    {chunk.status === ProcessingStatus.PROCESSING ? (
-                        <>
-                           <Loader2 size={20} className="animate-spin text-primary mb-2" />
-                           <p className="text-xs font-medium text-slate-400">Generating Response...</p>
-                        </>
-                    ) : (
-                        <>
-                            <ArrowRight size={20} className="text-slate-300 mb-2"/>
-                            <p className="text-xs text-slate-400">Waiting to process</p>
-                        </>
-                    )}
-                </div>
-            )}
-          </div>
+                ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40 pointer-events-none select-none">
+                         <Loader2 size={20} className="animate-spin text-primary mb-2" />
+                         <p className="text-xs font-medium text-slate-400">Generating Response...</p>
+                    </div>
+                )}
+            </div>
+          )}
         </div>
       )}
     </div>
