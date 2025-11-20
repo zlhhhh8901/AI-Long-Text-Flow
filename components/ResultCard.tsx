@@ -50,10 +50,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   };
 
   // Construct the preview of what is sent to the API
+  const systemParts = [systemPrompt, prePrompt].filter(p => p && p.trim().length > 0);
+  const combinedSystemPrompt = systemParts.join('\n\n');
+
   const requestPreview = {
     model: model,
     messages: [
-      { role: 'system', content: prePrompt ? `${systemPrompt}\n\n${prePrompt}` : systemPrompt },
+      ...(combinedSystemPrompt ? [{ role: 'system', content: combinedSystemPrompt }] : []),
       { role: 'user', content: chunk.rawContent }
     ]
   };

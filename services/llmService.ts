@@ -11,21 +11,28 @@ export const processChunkWithLLM = async (
   }
 
   // Construct System Message Content
-  const systemContent = prePrompt 
-    ? `${config.systemPrompt}\n\n${prePrompt}` 
-    : config.systemPrompt;
+  // Filter out empty parts to avoid leading newlines or sending empty system messages
+  const systemParts = [config.systemPrompt, prePrompt].filter(p => p && p.trim().length > 0);
+  const systemContent = systemParts.join('\n\n');
 
   // --- Gemini Provider ---
   if (config.provider === 'gemini') {
     try {
       const ai = new GoogleGenAI({ apiKey: config.apiKey });
+      
+      const requestConfig: any = {
+        temperature: config.temperature,
+      };
+
+      // Only add systemInstruction if content exists
+      if (systemContent) {
+        requestConfig.systemInstruction = systemContent;
+      }
+
       const response = await ai.models.generateContent({
         model: config.model,
         contents: text,
-        config: {
-          systemInstruction: systemContent,
-          temperature: config.temperature,
-        },
+        config: requestConfig,
       });
       return response.text || "";
     } catch (error: any) {
@@ -36,10 +43,14 @@ export const processChunkWithLLM = async (
 
   // --- OpenAI Provider (Default) ---
   
-  const messages = [
-    { role: 'system', content: systemContent },
-    { role: 'user', content: text }
-  ];
+  const messages = [];
+  
+  // Only add system role if there is content
+  if (systemContent) {
+    messages.push({ role: 'system', content: systemContent });
+  }
+  
+  messages.push({ role: 'user', content: text });
 
   // Remove trailing slash from baseUrl if present
   const baseUrl = config.baseUrl.replace(/\/$/, '');
