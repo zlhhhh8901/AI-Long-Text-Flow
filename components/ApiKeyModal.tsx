@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
-import { AppConfig } from '../types';
+import { X, Save, AlertCircle, Server, Key, Cpu } from 'lucide-react';
+import { AppConfig, ModelProvider } from '../types';
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -23,6 +23,17 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, confi
     onClose();
   };
 
+  const handleProviderChange = (provider: ModelProvider) => {
+    setLocalConfig(prev => ({
+        ...prev,
+        provider,
+        // Set default model when switching providers
+        model: provider === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4o',
+        // Clear or set default base URL if needed (keeping OpenAI URL as fallback)
+        baseUrl: provider === 'gemini' ? '' : 'https://api.openai.com/v1'
+    }));
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200">
@@ -39,38 +50,78 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, confi
         </div>
 
         <div className="space-y-4">
+          
+          {/* Provider Selector */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Base URL</label>
-            <input
-              type="text"
-              value={localConfig.baseUrl}
-              onChange={(e) => setLocalConfig({ ...localConfig, baseUrl: e.target.value })}
-              className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              placeholder="https://api.openai.com/v1"
-            />
+            <label className="block text-sm font-medium text-slate-700 mb-1">AI Provider</label>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-lg">
+                <button 
+                    onClick={() => handleProviderChange('gemini')}
+                    className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
+                        localConfig.provider === 'gemini' 
+                        ? 'bg-white text-primary shadow-sm' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                >
+                    <span className="text-xs">✨</span> Google Gemini
+                </button>
+                <button 
+                    onClick={() => handleProviderChange('openai')}
+                    className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
+                        localConfig.provider === 'openai' 
+                        ? 'bg-white text-primary shadow-sm' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                >
+                    <Server size={14} /> OpenAI / Compatible
+                </button>
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">API Key</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                <Key size={14} /> API Key
+            </label>
             <input
               type="password"
               value={localConfig.apiKey}
               onChange={(e) => setLocalConfig({ ...localConfig, apiKey: e.target.value })}
-              className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              placeholder="sk-..."
+              className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-mono text-sm"
+              placeholder={localConfig.provider === 'gemini' ? "AIza..." : "sk-..."}
             />
           </div>
 
+          {localConfig.provider === 'openai' && (
+            <div className="animate-in fade-in slide-in-from-top-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Base URL</label>
+                <input
+                type="text"
+                value={localConfig.baseUrl}
+                onChange={(e) => setLocalConfig({ ...localConfig, baseUrl: e.target.value })}
+                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                placeholder="https://api.openai.com/v1"
+                />
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Model Name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                <Cpu size={14} /> Model
+              </label>
               <input
                 type="text"
                 value={localConfig.model}
                 onChange={(e) => setLocalConfig({ ...localConfig, model: e.target.value })}
-                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="gpt-4o"
+                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                placeholder={localConfig.provider === 'gemini' ? "gemini-2.5-flash" : "gpt-4o"}
               />
+              {localConfig.provider === 'gemini' && (
+                <div className="mt-1 text-[10px] text-slate-500 flex gap-1 flex-wrap">
+                    <span className="cursor-pointer hover:text-primary" onClick={() => setLocalConfig({...localConfig, model: 'gemini-2.5-flash'})}>flash</span>
+                    <span className="cursor-pointer hover:text-primary" onClick={() => setLocalConfig({...localConfig, model: 'gemini-3-pro-preview'})}>pro</span>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Temperature</label>
@@ -81,14 +132,14 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, confi
                 max="2"
                 value={localConfig.temperature}
                 onChange={(e) => setLocalConfig({ ...localConfig, temperature: parseFloat(e.target.value) })}
-                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
               />
             </div>
           </div>
           
           <div className="bg-blue-50 p-3 rounded-lg text-xs text-blue-800 flex items-start gap-2">
             <AlertCircle size={16} className="mt-0.5 flex-shrink-0"/>
-            <p>Keys are stored in your browser's LocalStorage and are never sent to our servers. They go directly to the API provider.</p>
+            <p>Keys are stored in your browser's LocalStorage and are never sent to our servers. They are used directly with the AI provider.</p>
           </div>
         </div>
 

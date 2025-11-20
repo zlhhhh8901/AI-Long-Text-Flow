@@ -15,7 +15,12 @@ function App() {
   
   const [appConfig, setAppConfig] = useState<AppConfig>(() => {
     const saved = localStorage.getItem('ai-flow-config');
-    return saved ? JSON.parse(saved) : DEFAULT_CONFIG;
+    if (saved) {
+        const parsed = JSON.parse(saved);
+        // Merge with default to ensure new fields (like 'provider') are present
+        return { ...DEFAULT_CONFIG, ...parsed };
+    }
+    return DEFAULT_CONFIG;
   });
   const [splitConfig, setSplitConfig] = useState<SplitConfig>(DEFAULT_SPLIT_CONFIG);
   const [prePrompt, setPrePrompt] = useState('');

@@ -1,3 +1,4 @@
+import { GoogleGenAI } from "@google/genai";
 import { AppConfig } from '../types';
 
 export const processChunkWithLLM = async (
@@ -9,11 +10,32 @@ export const processChunkWithLLM = async (
     throw new Error("API Key is missing");
   }
 
-  // Construct System Message: Base System Prompt + Pre-Prompt (if any)
+  // Construct System Message Content
   const systemContent = prePrompt 
     ? `${config.systemPrompt}\n\n${prePrompt}` 
     : config.systemPrompt;
 
+  // --- Gemini Provider ---
+  if (config.provider === 'gemini') {
+    try {
+      const ai = new GoogleGenAI({ apiKey: config.apiKey });
+      const response = await ai.models.generateContent({
+        model: config.model,
+        contents: text,
+        config: {
+          systemInstruction: systemContent,
+          temperature: config.temperature,
+        },
+      });
+      return response.text || "";
+    } catch (error: any) {
+      console.error("Gemini Request Failed", error);
+      throw new Error(error.message || "Gemini API Error");
+    }
+  }
+
+  // --- OpenAI Provider (Default) ---
+  
   const messages = [
     { role: 'system', content: systemContent },
     { role: 'user', content: text }
