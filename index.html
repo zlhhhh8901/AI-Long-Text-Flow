@@ -4,16 +4,43 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI Long-Text Flow</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
             colors: {
-              primary: '#2563eb',
+              primary: {
+                DEFAULT: '#4f46e5', // Indigo 600
+                hover: '#4338ca',   // Indigo 700
+                light: '#e0e7ff',   // Indigo 100
+                dark: '#3730a3',    // Indigo 800
+              },
               secondary: '#475569',
               background: '#f8fafc',
               surface: '#ffffff',
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.2s ease-out',
+              'slide-up': 'slideUp 0.3s ease-out',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              slideUp: {
+                '0%': { transform: 'translateY(10px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' },
+              }
             }
           }
         }
@@ -22,18 +49,24 @@
     <style>
       /* Custom Scrollbar */
       ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
       }
       ::-webkit-scrollbar-track {
-        background: #f1f5f9;
+        background: transparent;
       }
       ::-webkit-scrollbar-thumb {
         background: #cbd5e1;
-        border-radius: 4px;
+        border-radius: 3px;
       }
       ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
+      }
+      
+      /* Drag Overlay Pattern */
+      .drag-pattern {
+        background-image: radial-gradient(#4f46e5 1px, transparent 1px);
+        background-size: 24px 24px;
       }
     </style>
   <script type="importmap">
@@ -49,7 +82,7 @@
 }
 </script>
 </head>
-  <body class="bg-background text-slate-900 antialiased overflow-hidden">
+  <body class="bg-background text-slate-900 antialiased overflow-hidden font-sans">
     <div id="root"></div>
   </body>
 </html>

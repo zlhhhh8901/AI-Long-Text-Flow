@@ -6,7 +6,7 @@ import { ResultCard } from './components/ResultCard';
 import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, PromptMode, SplitConfig } from './types';
 import { splitText } from './services/splitterService';
 import { processChunkWithLLM } from './services/llmService';
-import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Activity } from 'lucide-react';
+import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Activity, FileInput, Sparkles } from 'lucide-react';
 
 function App() {
   // --- State ---
@@ -17,7 +17,6 @@ function App() {
     const saved = localStorage.getItem('ai-flow-config');
     if (saved) {
         const parsed = JSON.parse(saved);
-        // Merge with default to ensure new fields (like 'provider') are present
         return { ...DEFAULT_CONFIG, ...parsed };
     }
     return DEFAULT_CONFIG;
@@ -29,15 +28,15 @@ function App() {
   const [promptMode, setPromptMode] = useState<PromptMode>('every');
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeRequestCount, setActiveRequestCount] = useState(0); // Visual counter
+  const [activeRequestCount, setActiveRequestCount] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   
-  // Refs for Queue Management to avoid closure staleness
+  // Refs for Queue Management
   const activeRequestsRef = useRef(0);
   const isProcessingRef = useRef(false);
   
-  // Sync processing state to ref
   useEffect(() => {
     isProcessingRef.current = isProcessing;
   }, [isProcessing]);
@@ -45,7 +44,6 @@ function App() {
   // Re-split when source text or config changes
   useEffect(() => {
     if (sourceText) {
-        // Note: This resets the chunks. If users had results, they are lost when config changes.
         const newChunks = splitText(sourceText, splitConfig);
         setChunks(newChunks);
     } else {
@@ -53,7 +51,6 @@ function App() {
     }
   }, [sourceText, splitConfig]);
 
-  // Persist Config
   const saveConfig = (newConfig: AppConfig) => {
     setAppConfig(newConfig);
     localStorage.setItem('ai-flow-config', JSON.stringify(newConfig));
@@ -63,17 +60,13 @@ function App() {
 
   const handlePaste = async () => {
     try {
-      // Attempt to read from clipboard
       const text = await navigator.clipboard.readText();
       if (text) {
         setSourceText(text);
       } else {
-         // Empty clipboard or failed
          setIsPasteModalOpen(true);
       }
     } catch (err) {
-      // Permission denied or not supported
-      console.warn("Clipboard API failed, opening manual input", err);
       setIsPasteModalOpen(true);
     }
   };
@@ -82,9 +75,7 @@ function App() {
       setSourceText(text);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string;
@@ -93,8 +84,34 @@ function App() {
       }
     };
     reader.readAsText(file);
-    // Reset input so same file can be selected again if needed
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
     e.target.value = '';
+  };
+
+  // Drag and Drop Handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!isProcessing) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (isProcessing) return;
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file && (file.name.endsWith('.txt') || file.name.endsWith('.md'))) {
+      processFile(file);
+    }
   };
 
   const handleClear = () => {
@@ -137,19 +154,17 @@ function App() {
         const processingCount = activeRequestsRef.current;
         const limit = isParallel ? concurrencyLimit : 1;
         
-        if (processingCount >= limit) return currentChunks; // Maxed out
+        if (processingCount >= limit) return currentChunks;
 
         let candidates = [...currentChunks];
         let toTrigger: ChunkItem[] = [];
 
         if (isParallel) {
-            // Find first N idle items
             const availableSlots = limit - processingCount;
             toTrigger = candidates
                 .filter(c => c.status === ProcessingStatus.IDLE || c.status === ProcessingStatus.WAITING)
                 .slice(0, availableSlots);
         } else {
-            // Serial: Find the FIRST incomplete item. If it's idle, trigger it.
             const firstIncomplete = candidates.find(c => c.status !== ProcessingStatus.SUCCESS && c.status !== ProcessingStatus.ERROR);
             if (firstIncomplete && (firstIncomplete.status === ProcessingStatus.IDLE || firstIncomplete.status === ProcessingStatus.WAITING)) {
                 toTrigger = [firstIncomplete];
@@ -157,7 +172,6 @@ function App() {
         }
 
         if (toTrigger.length === 0) {
-             // Check if all done
              const allDone = candidates.every(c => c.status === ProcessingStatus.SUCCESS || c.status === ProcessingStatus.ERROR);
              if (allDone && processingCount === 0) {
                  setTimeout(() => setIsProcessing(false), 0); 
@@ -165,22 +179,17 @@ function App() {
              return currentChunks;
         }
 
-        // Mark as processing in state immediately
         const idsToTrigger = new Set(toTrigger.map(c => c.id));
         const newChunks = candidates.map(c => 
             idsToTrigger.has(c.id) ? { ...c, status: ProcessingStatus.PROCESSING } : c
         );
         
-        // Fire side effects (Requests)
         toTrigger.forEach(chunk => {
             activeRequestsRef.current++;
             setActiveRequestCount(activeRequestsRef.current);
 
-            // Determine specific prompt for this chunk based on Prompt Mode
             let chunkPrePrompt = prePrompt;
             if (promptMode === 'first' && !isParallel) {
-                // If 'first' mode is active and we are in serial, only send prompt for the first chunk
-                // Note: chunk.index is 1-based from splitterService
                 if (chunk.index !== 1) {
                     chunkPrePrompt = '';
                 }
@@ -204,8 +213,6 @@ function App() {
     });
   }, [appConfig, prePrompt, isParallel, concurrencyLimit, updateChunkStatus, promptMode]);
 
-
-  // Watcher to kickstart or keep queue moving when state changes
   useEffect(() => {
     if (isProcessing) {
         processQueue();
@@ -226,7 +233,23 @@ function App() {
   const progress = totalCount === 0 ? 0 : (completedCount / totalCount) * 100;
 
   return (
-    <div className="flex h-screen w-screen bg-background">
+    <div 
+      className="flex h-screen w-screen bg-background relative"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag Overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-sm border-4 border-primary border-dashed m-4 rounded-2xl flex items-center justify-center pointer-events-none animate-fade-in">
+           <div className="bg-white p-6 rounded-xl shadow-xl flex flex-col items-center animate-slide-up">
+             <Upload size={48} className="text-primary mb-4"/>
+             <h3 className="text-xl font-bold text-slate-800">Drop file to import</h3>
+             <p className="text-slate-500">Supports .txt and .md files</p>
+           </div>
+        </div>
+      )}
+
       <Sidebar 
         splitConfig={splitConfig}
         setSplitConfig={setSplitConfig}
@@ -243,93 +266,102 @@ function App() {
 
       <main className="flex-1 flex flex-col h-full min-w-0">
         {/* Toolbar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10">
-          <div className="flex items-center gap-3">
+        <header className="h-18 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 py-3 shrink-0 z-10 shadow-sm">
+          <div className="flex items-center gap-2">
             <button 
                 onClick={handlePaste} 
                 disabled={isProcessing}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-lg transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Clipboard size={16} /> Paste
+              <Clipboard size={16} /> <span>Paste</span>
             </button>
-            <label className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
-              <Upload size={16} /> Import
+            <label className={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-lg transition-all shadow-sm cursor-pointer ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
+              <Upload size={16} /> <span>Import</span>
               <input type="file" accept=".txt,.md" onChange={handleFileUpload} className="hidden" disabled={isProcessing}/>
             </label>
-            <button 
-                onClick={handleClear} 
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-            >
-              <Trash2 size={16} /> Clear
-            </button>
+            {chunks.length > 0 && (
+                <button 
+                    onClick={handleClear} 
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 rounded-lg transition-all ml-2"
+                >
+                <Trash2 size={16} /> Clear
+                </button>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
              {chunks.length > 0 && (
-                 <div className="flex items-center gap-4 mr-2">
-                    {/* Status Indicator */}
-                    {isProcessing && (
-                        <div className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                            <Activity size={14} className="text-blue-500 animate-pulse"/>
-                            <span className="text-xs font-bold text-blue-700">
-                                {isParallel ? `Parallel (${activeRequestCount} active)` : 'Serial Mode'}
-                            </span>
+                 <div className="flex items-center gap-6 mr-2">
+                    <div className="flex flex-col min-w-[140px]">
+                        <div className="flex justify-between text-xs mb-1.5">
+                            <span className="font-semibold text-slate-500">{isParallel ? 'Parallel' : 'Serial'}</span>
+                            <span className="font-bold text-slate-800">{Math.round(progress)}%</span>
                         </div>
-                    )}
-
-                    <div className="flex flex-col items-end">
-                        <span className="text-xs font-bold text-slate-700">{completedCount} / {totalCount}</span>
-                        <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                        <div className="w-36 h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary transition-all duration-500 ease-out shadow-[0_0_10px_rgba(79,70,229,0.4)]" style={{ width: `${progress}%` }}></div>
                         </div>
                     </div>
+                    
                     {completedCount > 0 && (
-                        <button onClick={handleExport} className="p-2 text-slate-500 hover:text-primary transition-colors" title="Export Markdown">
+                        <button onClick={handleExport} className="p-2 text-slate-500 hover:text-primary bg-slate-50 hover:bg-indigo-50 rounded-lg transition-colors" title="Export Markdown">
                             <Download size={20} />
                         </button>
                     )}
                  </div>
              )}
 
+             <div className="h-8 w-px bg-slate-200 mx-1"></div>
+
              <button 
                 onClick={() => setIsProcessing(!isProcessing)}
                 disabled={chunks.length === 0}
-                className={`flex items-center gap-2 px-5 py-2 rounded-full font-bold shadow-lg transition-all ${
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 ${
                     isProcessing 
-                    ? 'bg-amber-400 text-amber-950 hover:bg-amber-500' 
-                    : 'bg-primary text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                    ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-200 shadow-amber-100' 
+                    : 'bg-primary text-white hover:bg-primary-hover shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:translate-y-0'
                 }`}
              >
-                {isProcessing ? <><Pause size={18} fill="currentColor"/> Pause</> : <><Play size={18} fill="currentColor"/> Start</>}
+                {isProcessing ? <><Pause size={18} fill="currentColor"/> Pause</> : <><Play size={18} fill="currentColor"/> Start Process</>}
              </button>
 
-             <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-slate-400 hover:text-slate-700 transition-colors">
-                <Settings size={24} />
+             <button onClick={() => setIsSettingsOpen(true)} className="p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors">
+                <Settings size={22} />
              </button>
           </div>
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 scroll-smooth relative">
+        <div className="flex-1 overflow-y-auto p-8 bg-slate-50 scroll-smooth relative">
             {chunks.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                        <Clipboard size={32} className="text-slate-300"/>
+                <div className="h-full flex flex-col items-center justify-center text-slate-400 animate-fade-in">
+                    <div className="w-full max-w-md border-2 border-dashed border-slate-200 rounded-2xl p-10 flex flex-col items-center justify-center bg-white/50 hover:bg-white hover:border-primary/50 transition-all group cursor-pointer" onClick={() => setIsPasteModalOpen(true)}>
+                        <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                            <Sparkles size={36} className="text-primary"/>
+                        </div>
+                        <h2 className="text-xl font-bold text-slate-700 mb-2">Start your workflow</h2>
+                        <p className="text-center text-slate-500 text-sm mb-6 leading-relaxed">
+                            Drag & drop a text file here,<br/> or paste content to begin intelligent splitting.
+                        </p>
+                        <div className="flex gap-3">
+                             <button onClick={(e) => {e.stopPropagation(); handlePaste()}} className="px-4 py-2 bg-white border border-slate-200 shadow-sm rounded-lg text-sm font-semibold text-slate-600 hover:border-primary hover:text-primary transition-all">
+                                Paste Text
+                             </button>
+                             <label onClick={(e) => e.stopPropagation()} className="px-4 py-2 bg-primary text-white shadow-lg shadow-primary/20 rounded-lg text-sm font-semibold hover:bg-primary-hover transition-all cursor-pointer flex items-center gap-2">
+                                <Upload size={14}/> Upload File
+                                <input type="file" accept=".txt,.md" onChange={handleFileUpload} className="hidden"/>
+                             </label>
+                        </div>
                     </div>
-                    <h2 className="text-lg font-semibold text-slate-600">Ready to process</h2>
-                    <p className="max-w-sm text-center mt-2 text-sm">
-                        Paste text or upload a file to split it into chunks. Configure your API settings before starting.
-                    </p>
                     {!appConfig.apiKey && (
-                         <button onClick={() => setIsSettingsOpen(true)} className="mt-6 text-primary text-sm font-bold hover:underline">
-                            Configure API Key &rarr;
-                         </button>
+                         <div className="mt-8 flex items-center gap-2 text-amber-600 bg-amber-50 px-4 py-2 rounded-full text-sm font-medium border border-amber-100 cursor-pointer hover:bg-amber-100 transition-colors" onClick={() => setIsSettingsOpen(true)}>
+                            <Settings size={14}/>
+                            API Key not configured
+                         </div>
                     )}
                 </div>
             ) : (
-                <div className="space-y-4 max-w-4xl mx-auto pb-20">
+                <div className="space-y-6 max-w-4xl mx-auto pb-20 animate-fade-in">
                     {chunks.map(chunk => {
-                        // Calculate effective prompt for preview purposes
                         const effectivePrePrompt = (promptMode === 'first' && !isParallel && chunk.index > 1) 
                             ? '' 
                             : prePrompt;
