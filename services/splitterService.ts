@@ -68,7 +68,8 @@ export const splitText = (text: string, config: SplitConfig): ChunkItem[] => {
   const batchSize = Math.max(1, config.batchSize);
   
   for (let i = 0; i < cleanChunks.length; i += batchSize) {
-    batchedChunks.push(cleanChunks.slice(i, i + batchSize).join('\n\n'));
+    // Trim chunks to prevent stacking newlines (e.g. \n\n\n\n\n\n)
+    batchedChunks.push(cleanChunks.slice(i, i + batchSize).map(c => c.trim()).join('\n\n'));
   }
 
   // Convert to ChunkItems
