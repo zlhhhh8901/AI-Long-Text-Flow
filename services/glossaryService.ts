@@ -9,6 +9,10 @@ export const findMatchingTerms = (content: string, allTerms: GlossaryTerm[]): Gl
 
   const lowerContent = content.toLowerCase();
   
+  // Sort terms by length (descending) to match longer phrases first if needed, 
+  // though for simple 'includes' check, we just need to filter.
+  // We use a Set to avoid duplicates if multiple terms match the same concept improperly, 
+  // but here we just return all distinct configured terms that appear.
   return allTerms.filter(item => {
     if (!item.term.trim()) return false;
     return lowerContent.includes(item.term.toLowerCase().trim());

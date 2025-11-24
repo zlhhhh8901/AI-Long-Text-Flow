@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { ChunkItem, GlossaryTerm, ProcessingStatus } from '../types';
-import { CheckCircle2, Circle, Loader2, AlertTriangle, ChevronDown, Copy, RefreshCw, Terminal, ArrowRight, History } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2, AlertTriangle, ChevronDown, Copy, RefreshCw, Terminal, History } from 'lucide-react';
 import { constructUserMessageWithGlossary } from '../services/glossaryService';
 
 interface ResultCardProps {
