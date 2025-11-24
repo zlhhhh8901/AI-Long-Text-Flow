@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ChunkItem, ProcessingStatus } from '../types';
+import { ChunkItem, GlossaryTerm, ProcessingStatus } from '../types';
 import { CheckCircle2, Circle, Loader2, AlertTriangle, ChevronDown, Copy, RefreshCw, Terminal, ArrowRight, History } from 'lucide-react';
+import { constructUserMessageWithGlossary } from '../services/glossaryService';
 
 interface ResultCardProps {
   chunk: ChunkItem;
@@ -10,6 +11,8 @@ interface ResultCardProps {
   prePrompt: string;
   model: string;
   isContextual?: boolean;
+  glossaryTerms: GlossaryTerm[];
+  isGlossaryEnabled: boolean;
 }
 
 export const ResultCard: React.FC<ResultCardProps> = ({ 
@@ -18,7 +21,9 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   systemPrompt,
   prePrompt,
   model,
-  isContextual = false
+  isContextual = false,
+  glossaryTerms,
+  isGlossaryEnabled
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -51,26 +56,33 @@ export const ResultCard: React.FC<ResultCardProps> = ({
     }
   };
 
+  // Use shared logic to construct the full user message preview
+  const finalUserMessage = constructUserMessageWithGlossary(
+    chunk.rawContent,
+    prePrompt,
+    glossaryTerms,
+    isGlossaryEnabled
+  );
+
   // Construct the preview of what is sent to the API
   let requestPreview: any = {};
 
   if (isContextual) {
-      const userContent = prePrompt ? `${prePrompt}\n\n${chunk.rawContent}` : chunk.rawContent;
       if (chunk.index === 1) {
            requestPreview = {
                mode: 'Contextual Session (Start)',
                system_instruction: systemPrompt || undefined,
-               new_user_message: userContent
+               new_user_message: finalUserMessage
            };
       } else {
            requestPreview = {
                mode: 'Contextual Session (Continue)',
                previous_context_turns: (chunk.index - 1) * 2,
-               new_user_message: userContent
+               new_user_message: finalUserMessage
            };
       }
   } else {
-      const systemParts = [systemPrompt, prePrompt].filter(p => p && p.trim().length > 0);
+      const systemParts = [systemPrompt].filter(p => p && p.trim().length > 0);
       const combinedSystemPrompt = systemParts.join('\n\n');
 
       requestPreview = {
@@ -78,7 +90,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
         mode: 'Independent Request',
         messages: [
           ...(combinedSystemPrompt ? [{ role: 'system', content: combinedSystemPrompt }] : []),
-          { role: 'user', content: chunk.rawContent }
+          { role: 'user', content: finalUserMessage }
         ]
       };
   }

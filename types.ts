@@ -24,6 +24,12 @@ export interface ChunkItem {
   errorMsg?: string;
 }
 
+export interface GlossaryTerm {
+  id: string;
+  term: string;
+  definition: string;
+}
+
 export interface AppConfig {
   provider: ModelProvider;
   apiKey: string;

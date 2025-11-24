@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { PasteModal } from './components/PasteModal';
+import { GlossaryModal } from './components/GlossaryModal';
 import { ResultCard } from './components/ResultCard';
-import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, PromptMode, SplitConfig } from './types';
+import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, PromptMode, SplitConfig, GlossaryTerm } from './types';
 import { splitText } from './services/splitterService';
 import { processChunkWithLLM, initializeSession, LLMSession } from './services/llmService';
+import { constructUserMessageWithGlossary } from './services/glossaryService';
 import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Activity, FileInput, Sparkles, FileText, MessageSquare } from 'lucide-react';
 
 function App() {
@@ -28,6 +30,14 @@ function App() {
   const [concurrencyLimit, setConcurrencyLimit] = useState(3);
   const [promptMode, setPromptMode] = useState<PromptMode>('every');
   
+  // Glossary State
+  const [glossaryTerms, setGlossaryTerms] = useState<GlossaryTerm[]>(() => {
+    const saved = localStorage.getItem('ai-flow-glossary');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isGlossaryEnabled, setIsGlossaryEnabled] = useState(false);
+  const [isGlossaryModalOpen, setIsGlossaryModalOpen] = useState(false);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeRequestCount, setActiveRequestCount] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -58,6 +68,11 @@ function App() {
   useEffect(() => {
     sessionRef.current = undefined;
   }, [appConfig.provider, appConfig.apiKey, appConfig.model, appConfig.systemPrompt, isContextual, sourceText]);
+
+  // Persist Glossary
+  useEffect(() => {
+    localStorage.setItem('ai-flow-glossary', JSON.stringify(glossaryTerms));
+  }, [glossaryTerms]);
 
   const saveConfig = (newConfig: AppConfig) => {
     setAppConfig(newConfig);
@@ -225,10 +240,20 @@ function App() {
                 }
             }
 
+            // Construct Full Message with Glossary (Just-in-Time Injection)
+            const finalUserMessage = constructUserMessageWithGlossary(
+                chunk.rawContent,
+                chunkPrePrompt,
+                glossaryTerms,
+                isGlossaryEnabled
+            );
+
             // Determine valid session to pass
             const activeSession = (!isParallel && isContextual) ? sessionRef.current : undefined;
 
-            processChunkWithLLM(chunk.rawContent, appConfig, chunkPrePrompt, activeSession)
+            // IMPORTANT: pass finalUserMessage as "rawContent" to llmService, 
+            // but passing empty prePrompt because we already baked it into finalUserMessage
+            processChunkWithLLM(finalUserMessage, appConfig, '', activeSession)
                 .then(result => {
                     updateChunkStatus(chunk.id, ProcessingStatus.SUCCESS, result);
                 })
@@ -244,7 +269,7 @@ function App() {
 
         return newChunks;
     });
-  }, [appConfig, prePrompt, isParallel, concurrencyLimit, updateChunkStatus, promptMode, isContextual]);
+  }, [appConfig, prePrompt, isParallel, concurrencyLimit, updateChunkStatus, promptMode, isContextual, glossaryTerms, isGlossaryEnabled]);
 
   useEffect(() => {
     if (isProcessing) {
@@ -297,6 +322,11 @@ function App() {
         isContextual={isContextual}
         setIsContextual={setIsContextual}
         disabled={isProcessing}
+        // Glossary Props
+        glossaryTerms={glossaryTerms}
+        isGlossaryEnabled={isGlossaryEnabled}
+        setIsGlossaryEnabled={setIsGlossaryEnabled}
+        onOpenGlossary={() => setIsGlossaryModalOpen(true)}
       />
 
       <main className="flex-1 flex flex-col h-full min-w-0">
@@ -440,6 +470,9 @@ function App() {
                                 prePrompt={effectivePrePrompt}
                                 model={appConfig.model}
                                 isContextual={!isParallel && isContextual}
+                                // Glossary Props
+                                glossaryTerms={glossaryTerms}
+                                isGlossaryEnabled={isGlossaryEnabled}
                             />
                         );
                     })}
@@ -459,6 +492,13 @@ function App() {
         isOpen={isPasteModalOpen}
         onClose={() => setIsPasteModalOpen(false)}
         onImport={handleManualImport}
+      />
+
+      <GlossaryModal
+        isOpen={isGlossaryModalOpen}
+        onClose={() => setIsGlossaryModalOpen(false)}
+        terms={glossaryTerms}
+        onUpdateTerms={setGlossaryTerms}
       />
     </div>
   );

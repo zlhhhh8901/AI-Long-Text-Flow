@@ -1,5 +1,5 @@
 import React from 'react';
-import { PromptMode, SplitConfig, SplitMode } from '../types';
+import { PromptMode, SplitConfig, SplitMode, GlossaryTerm } from '../types';
 import { 
   AlignJustify, 
   Scissors, 
@@ -10,7 +10,8 @@ import {
   ArrowDownToLine, 
   Settings2, 
   Info,
-  MessageSquare
+  MessageSquare,
+  Book
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -26,6 +27,10 @@ interface SidebarProps {
   setPromptMode: (val: PromptMode) => void;
   isContextual: boolean;
   setIsContextual: (val: boolean) => void;
+  glossaryTerms: GlossaryTerm[];
+  isGlossaryEnabled: boolean;
+  setIsGlossaryEnabled: (val: boolean) => void;
+  onOpenGlossary: () => void;
   disabled?: boolean;
 }
 
@@ -42,6 +47,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setPromptMode,
   isContextual,
   setIsContextual,
+  glossaryTerms,
+  isGlossaryEnabled,
+  setIsGlossaryEnabled,
+  onOpenGlossary,
   disabled = false
 }) => {
   return (
@@ -179,6 +188,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                          <FileText size={12} className="text-slate-400" />
                     </div>
                 </div>
+            </div>
+
+            {/* Glossary Config */}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-2 shadow-sm">
+                <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                         <div className="relative inline-flex items-center">
+                            <input 
+                                type="checkbox" 
+                                className="sr-only peer" 
+                                checked={isGlossaryEnabled}
+                                onChange={(e) => setIsGlossaryEnabled(e.target.checked)}
+                            />
+                            <div className="w-7 h-3.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-primary"></div>
+                        </div>
+                        <span className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
+                            <Book size={12}/> Glossary
+                        </span>
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-mono">{glossaryTerms.length} terms</span>
+                </div>
+                
+                <button 
+                    onClick={onOpenGlossary}
+                    className="w-full py-1.5 text-[10px] font-semibold bg-white border border-slate-200 hover:border-primary hover:text-primary rounded-lg transition-colors shadow-sm"
+                >
+                    Manage Terms
+                </button>
             </div>
 
             <div>
