@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, Book, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { X, Plus, Trash2, Book, FileSpreadsheet, Save, AlertCircle } from 'lucide-react';
 import { GlossaryTerm } from '../types';
 
 interface GlossaryModalProps {
@@ -42,6 +42,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
     
     lines.forEach(line => {
         // Supports CSV style: Term, Definition (comma or tab or colon)
+        // Priority: Tab -> Colon -> Comma
         let parts = line.split('\t');
         if (parts.length < 2) parts = line.split(':'); // Simple Colon
         if (parts.length < 2) parts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); // Comma ignoring quotes

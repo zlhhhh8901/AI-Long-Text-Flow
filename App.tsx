@@ -8,7 +8,7 @@ import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingS
 import { splitText } from './services/splitterService';
 import { processChunkWithLLM, initializeSession, LLMSession } from './services/llmService';
 import { constructUserMessageWithGlossary } from './services/glossaryService';
-import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Sparkles, FileText, MessageSquare } from 'lucide-react';
+import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Activity, FileInput, Sparkles, FileText, MessageSquare } from 'lucide-react';
 
 function App() {
   // --- State ---
@@ -241,7 +241,6 @@ function App() {
             }
 
             // Construct Full Message with Glossary (Just-in-Time Injection)
-            // This now includes Pre-Prompt + Glossary + Original Content
             const finalUserMessage = constructUserMessageWithGlossary(
                 chunk.rawContent,
                 chunkPrePrompt,
@@ -252,10 +251,8 @@ function App() {
             // Determine valid session to pass
             const activeSession = (!isParallel && isContextual) ? sessionRef.current : undefined;
 
-            // CRITICAL CHANGE: We pass an empty string '' as the 3rd argument (prePrompt)
-            // because we have already baked the prePrompt (instructions) into the finalUserMessage.
-            // This moves the instructions from System Prompt (in the old logic) to User Prompt (new logic).
-            // AppConfig.systemPrompt (global settings) is still handled inside processChunkWithLLM as System role.
+            // IMPORTANT: pass finalUserMessage as "rawContent" to llmService, 
+            // but passing empty prePrompt because we already baked it into finalUserMessage
             processChunkWithLLM(finalUserMessage, appConfig, '', activeSession)
                 .then(result => {
                     updateChunkStatus(chunk.id, ProcessingStatus.SUCCESS, result);
@@ -334,17 +331,17 @@ function App() {
 
       <main className="flex-1 flex flex-col h-full min-w-0">
         {/* Toolbar */}
-        <header className="h-18 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 py-3 shrink-0 z-10 shadow-sm gap-4">
-          <div className="flex items-center gap-2 shrink-0">
+        <header className="h-18 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 py-3 shrink-0 z-10 shadow-sm">
+          <div className="flex items-center gap-2">
             <button 
                 onClick={handlePaste} 
                 disabled={isProcessing}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-lg transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Clipboard size={16} /> <span className="hidden sm:inline">Paste</span>
+              <Clipboard size={16} /> <span>Paste</span>
             </button>
             <label className={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 rounded-lg transition-all shadow-sm cursor-pointer ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
-              <Upload size={16} /> <span className="hidden sm:inline">Import</span>
+              <Upload size={16} /> <span>Import</span>
               <input type="file" accept=".txt,.md" onChange={handleFileUpload} className="hidden" disabled={isProcessing}/>
             </label>
             {chunks.length > 0 && (
@@ -352,15 +349,15 @@ function App() {
                     onClick={handleClear} 
                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 rounded-lg transition-all ml-2"
                 >
-                <Trash2 size={16} /> <span className="hidden sm:inline">Clear</span>
+                <Trash2 size={16} /> Clear
                 </button>
             )}
           </div>
 
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-4">
              {chunks.length > 0 && (
                  <div className="flex items-center gap-6 mr-2">
-                    <div className="hidden md:flex flex-col min-w-[140px]">
+                    <div className="flex flex-col min-w-[140px]">
                         <div className="flex justify-between text-xs mb-1.5">
                             <span className="font-semibold text-slate-500">{isParallel ? 'Parallel' : (isContextual ? 'Serial Context' : 'Serial')}</span>
                             <span className="font-bold text-slate-800">{Math.round(progress)}%</span>
@@ -419,7 +416,7 @@ function App() {
                     : 'bg-primary text-white hover:bg-primary-hover shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:translate-y-0'
                 }`}
              >
-                {isProcessing ? <><Pause size={18} fill="currentColor"/> <span className="hidden sm:inline">Pause</span></> : <><Play size={18} fill="currentColor"/> <span className="hidden sm:inline">Start Process</span></>}
+                {isProcessing ? <><Pause size={18} fill="currentColor"/> Pause</> : <><Play size={18} fill="currentColor"/> Start Process</>}
              </button>
 
              <button onClick={() => setIsSettingsOpen(true)} className="p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors">
