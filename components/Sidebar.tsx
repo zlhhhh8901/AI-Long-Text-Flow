@@ -169,9 +169,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Prompts Section */}
         <section className="space-y-4">
-           <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400 uppercase tracking-widest mb-2">
-            <FileText size={12} />
-            <span>Guidance</span>
+           <div className="flex items-center justify-between mb-2">
+               <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400 uppercase tracking-widest">
+                <FileText size={12} />
+                <span>Guidance</span>
+              </div>
+              
+              <label className={`flex items-center gap-2 cursor-pointer group select-none ${isParallel ? 'opacity-40 pointer-events-none' : ''}`} title={isParallel ? "Not available in Parallel mode" : "Inject guidance only in the first chunk"}>
+                  <span className={`text-[9px] font-bold uppercase tracking-wider transition-colors ${promptMode === 'first' ? 'text-primary' : 'text-stone-300 group-hover:text-stone-400'}`}>
+                    Initial Only
+                  </span>
+                   <div className="relative inline-flex items-center">
+                        <input 
+                            type="checkbox" 
+                            className="sr-only peer" 
+                            checked={promptMode === 'first'}
+                            onChange={(e) => setPromptMode(e.target.checked ? 'first' : 'every')}
+                            disabled={isParallel}
+                        />
+                        <div className="w-7 h-3.5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1.5px] after:left-[1.5px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-[11px] after:w-[11px] after:transition-all peer-checked:bg-primary"></div>
+                    </div>
+              </label>
           </div>
 
           <div className="space-y-4">
@@ -181,7 +199,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         value={prePrompt}
                         onChange={(e) => setPrePrompt(e.target.value)}
                         className="w-full h-32 px-4 py-4 bg-white border-none rounded-2xl text-xs text-stone-600 focus:ring-2 focus:ring-primary/10 transition-all resize-none leading-relaxed placeholder:text-stone-300 shadow-sm"
-                        placeholder="How should the model treat each piece of text?..."
+                        placeholder="Enter a prefix prompt. By default it appears before every text block; in INITIAL ONLY mode, only before the first."
                     />
                 </div>
             </div>
@@ -212,33 +230,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                     Manage Terms
                 </button>
-            </div>
-
-            <div>
-                <label className="block text-[11px] font-medium text-stone-500 mb-2">Injection Strategy</label>
-                <div className="flex bg-stone-100/80 p-1 rounded-xl">
-                    <button
-                        onClick={() => setPromptMode('every')}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-medium transition-all ${
-                            promptMode === 'every'
-                            ? 'bg-white text-primary shadow-sm' 
-                            : 'text-stone-500 hover:text-stone-700'
-                        }`}
-                    >
-                        <Zap size={12}/> Constant
-                    </button>
-                    <button
-                        onClick={() => setPromptMode('first')}
-                        disabled={isParallel}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-medium transition-all ${
-                            promptMode === 'first'
-                            ? 'bg-white text-primary shadow-sm' 
-                            : 'text-stone-500 hover:text-stone-700 disabled:opacity-40'
-                        }`}
-                    >
-                        <ArrowDownToLine size={12}/> Initial Only
-                    </button>
-                </div>
             </div>
           </div>
         </section>
