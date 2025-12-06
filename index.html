@@ -19,18 +19,27 @@
             },
             colors: {
               primary: {
-                DEFAULT: '#4f46e5', // Indigo 600
-                hover: '#4338ca',   // Indigo 700
+                DEFAULT: '#6366f1', // Indigo 500 (Softer)
+                hover: '#4f46e5',   // Indigo 600
                 light: '#e0e7ff',   // Indigo 100
                 dark: '#3730a3',    // Indigo 800
+                subtle: '#818cf8',  // Indigo 400
               },
-              secondary: '#475569',
-              background: '#f8fafc',
+              secondary: '#64748b',
+              background: '#fafaf9', // Stone 50 (Warmer)
               surface: '#ffffff',
+              stone: {
+                50: '#fafaf9',
+                100: '#f5f5f4',
+                200: '#e7e5e4',
+                300: '#d6d3d1',
+                800: '#292524',
+              }
             },
             animation: {
-              'fade-in': 'fadeIn 0.2s ease-out',
-              'slide-up': 'slideUp 0.3s ease-out',
+              'fade-in': 'fadeIn 0.4s ease-out',
+              'slide-up': 'slideUp 0.5s ease-out',
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             },
             keyframes: {
               fadeIn: {
@@ -38,35 +47,46 @@
                 '100%': { opacity: '1' },
               },
               slideUp: {
-                '0%': { transform: 'translateY(10px)', opacity: '0' },
+                '0%': { transform: 'translateY(15px)', opacity: '0' },
                 '100%': { transform: 'translateY(0)', opacity: '1' },
               }
+            },
+            boxShadow: {
+              'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+              'glow': '0 0 15px rgba(99, 102, 241, 0.3)',
             }
           }
         }
       }
     </script>
     <style>
-      /* Custom Scrollbar */
+      /* Custom Scrollbar - Minimalist */
       ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
       }
       ::-webkit-scrollbar-track {
         background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 3px;
+        background: #e7e5e4; /* Stone 200 */
+        border-radius: 10px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #a8a29e; /* Stone 400 */
       }
       
-      /* Drag Overlay Pattern */
-      .drag-pattern {
-        background-image: radial-gradient(#4f46e5 1px, transparent 1px);
-        background-size: 24px 24px;
+      /* Glassmorphism Utilities */
+      .glass {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+      
+      .glass-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
       }
     </style>
   <script type="importmap">
@@ -82,7 +102,7 @@
 }
 </script>
 </head>
-  <body class="bg-background text-slate-900 antialiased overflow-hidden font-sans">
+  <body class="bg-background text-stone-800 antialiased overflow-hidden font-sans selection:bg-primary-light selection:text-primary-dark">
     <div id="root"></div>
   </body>
 </html>

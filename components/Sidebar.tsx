@@ -11,7 +11,8 @@ import {
   Settings2, 
   Info,
   MessageSquare,
-  Book
+  Book,
+  Sparkles
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -54,30 +55,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
   disabled = false
 }) => {
   return (
-    <div className="w-72 h-full bg-white border-r border-slate-200 flex flex-col shadow-xl shadow-slate-200/50 z-20 font-sans">
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/30 backdrop-blur-sm flex items-center gap-3 shrink-0">
-        <div className="bg-gradient-to-br from-primary to-primary-dark text-white p-2 rounded-lg shadow-md shadow-primary/20">
-          <AlignJustify size={18} strokeWidth={2.5} />
+    <div className="w-80 h-full bg-surface/50 glass border-r border-stone-100 flex flex-col z-20 font-sans transition-all duration-300">
+      {/* Header - More Abstract/Personal */}
+      <div className="px-6 py-6 flex items-center gap-3 shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-light to-white flex items-center justify-center shadow-soft">
+          <Sparkles size={20} className="text-primary" strokeWidth={1.5} />
         </div>
         <div>
-          <h1 className="text-sm font-bold text-slate-800 tracking-tight leading-none">AI Flow</h1>
-          <p className="text-[10px] font-medium text-slate-400 mt-1">Text Processing Workflow</p>
+          <h1 className="text-base font-bold text-stone-800 tracking-tight">AI Flow</h1>
+          <p className="text-[11px] font-medium text-stone-400">Harmonious Processing</p>
         </div>
       </div>
 
-      <div className={`flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6 ${disabled ? 'opacity-60 pointer-events-none grayscale-[0.5]' : ''}`}>
+      <div className={`flex-1 overflow-y-auto custom-scrollbar px-6 py-2 space-y-8 ${disabled ? 'opacity-50 pointer-events-none grayscale-[0.3]' : ''}`}>
         
         {/* Slicer Section */}
-        <section className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
-            <Scissors size={14} className="text-primary" />
-            <span>Split Strategy</span>
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400 uppercase tracking-widest mb-2">
+            <Scissors size={12} />
+            <span>Fragmentation</span>
           </div>
           
-          <div className="space-y-3">
-            {/* Mode Selector */}
-            <div className="bg-slate-100 p-1 rounded-lg grid grid-cols-3 gap-1">
+          <div className="space-y-4">
+            {/* Mode Selector - Softer Pills */}
+            <div className="bg-stone-100/80 p-1.5 rounded-2xl grid grid-cols-3 gap-1">
                 {[
                     { val: SplitMode.CHARACTER, icon: Type, label: 'Chars' },
                     { val: SplitMode.LINE, icon: AlignJustify, label: 'Lines' },
@@ -86,114 +87,109 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <button
                         key={opt.val}
                         onClick={() => setSplitConfig({ ...splitConfig, mode: opt.val })}
-                        className={`flex flex-col items-center justify-center py-2 rounded-md text-[10px] font-semibold transition-all duration-200 ${
+                        className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-[10px] font-medium transition-all duration-300 ${
                             splitConfig.mode === opt.val 
-                            ? 'bg-white text-primary shadow-sm ring-1 ring-black/5 scale-[1.02]' 
-                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                            ? 'bg-white text-primary shadow-soft scale-[1.02]' 
+                            : 'text-stone-500 hover:text-stone-700 hover:bg-stone-200/50'
                         }`}
                     >
-                        <opt.icon size={14} className="mb-1"/>
+                        <opt.icon size={14} className="mb-1 opacity-80"/>
                         {opt.label}
                     </button>
                 ))}
             </div>
 
-            {/* Dynamic Inputs based on Mode */}
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-3 shadow-sm">
+            {/* Config Cards */}
+            <div className="space-y-3">
               {splitConfig.mode === SplitMode.CHARACTER && (
-                <div className="animate-fade-in">
-                  <label className="flex justify-between text-[11px] font-semibold text-slate-500 mb-1.5">
-                    Chunk Size <span className="text-slate-400 font-normal">chars</span>
+                <div className="animate-fade-in group">
+                  <label className="flex justify-between text-[11px] font-medium text-stone-500 mb-2 group-focus-within:text-primary transition-colors">
+                    Chunk Size <span className="text-stone-300">chars</span>
                   </label>
                   <input
                     type="number"
                     value={splitConfig.chunkSize}
                     onChange={(e) => setSplitConfig({ ...splitConfig, chunkSize: Number(e.target.value) })}
-                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-mono shadow-sm"
+                    className="w-full px-4 py-2.5 bg-white border-none rounded-xl text-sm text-stone-700 focus:ring-2 focus:ring-primary/10 shadow-sm transition-all outline-none font-mono"
                   />
                 </div>
               )}
 
               {splitConfig.mode === SplitMode.LINE && (
-                <div className="animate-fade-in">
-                  <label className="flex justify-between text-[11px] font-semibold text-slate-500 mb-1.5">
-                    Lines per Chunk <span className="text-slate-400 font-normal">count</span>
+                <div className="animate-fade-in group">
+                  <label className="flex justify-between text-[11px] font-medium text-stone-500 mb-2 group-focus-within:text-primary transition-colors">
+                    Lines per Chunk <span className="text-stone-300">count</span>
                   </label>
                   <input
                     type="number"
                     value={splitConfig.lineCount}
                     onChange={(e) => setSplitConfig({ ...splitConfig, lineCount: Number(e.target.value) })}
-                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-mono shadow-sm"
+                    className="w-full px-4 py-2.5 bg-white border-none rounded-xl text-sm text-stone-700 focus:ring-2 focus:ring-primary/10 shadow-sm transition-all outline-none font-mono"
                   />
                 </div>
               )}
 
               {splitConfig.mode === SplitMode.CUSTOM && (
-                <div className="animate-fade-in">
-                  <label className="flex justify-between text-[11px] font-semibold text-slate-500 mb-1.5">
-                    Separator <span className="text-slate-400 font-normal">Str or /Regex/</span>
+                <div className="animate-fade-in group">
+                  <label className="flex justify-between text-[11px] font-medium text-stone-500 mb-2 group-focus-within:text-primary transition-colors">
+                    Separator <span className="text-stone-300">Regex supported</span>
                   </label>
                   <input
                     type="text"
                     value={splitConfig.customSeparator}
                     onChange={(e) => setSplitConfig({ ...splitConfig, customSeparator: e.target.value })}
-                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-mono shadow-sm"
+                    className="w-full px-4 py-2.5 bg-white border-none rounded-xl text-sm text-stone-700 focus:ring-2 focus:ring-primary/10 shadow-sm transition-all outline-none font-mono placeholder:text-stone-300"
                     placeholder="###"
                   />
                 </div>
               )}
               
               {/* Batch Size */}
-               <div className="pt-2 border-t border-slate-200/50">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[11px] font-semibold text-slate-500">Batch Size</label>
+               <div className="pt-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[11px] font-medium text-stone-500">Batch Size</label>
                     <div className="group relative flex items-center">
-                         <Info size={12} className="text-slate-300 hover:text-primary cursor-help transition-colors"/>
-                         <div className="absolute right-0 bottom-full mb-1.5 w-40 p-2.5 bg-slate-800 text-white text-[10px] leading-relaxed rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50">
-                            Merges multiple chunks into a single API request to optimize context window usage.
+                         <Info size={12} className="text-stone-300 hover:text-primary cursor-help transition-colors"/>
+                         <div className="absolute right-0 bottom-full mb-1.5 w-40 p-3 bg-stone-800 text-stone-50 text-[10px] leading-relaxed rounded-xl shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50">
+                            Combine smaller pieces to flow together efficiently.
                          </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                     <input
-                        type="number"
-                        min="1"
-                        value={splitConfig.batchSize}
-                        onChange={(e) => setSplitConfig({ ...splitConfig, batchSize: Number(e.target.value) })}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-mono shadow-sm"
-                      />
-                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    value={splitConfig.batchSize}
+                    onChange={(e) => setSplitConfig({ ...splitConfig, batchSize: Number(e.target.value) })}
+                    className="w-full px-4 py-2.5 bg-white border-none rounded-xl text-sm text-stone-700 focus:ring-2 focus:ring-primary/10 shadow-sm transition-all outline-none font-mono"
+                  />
               </div>
             </div>
           </div>
         </section>
 
         {/* Prompts Section */}
-        <section className="space-y-3">
-           <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
-            <FileText size={14} className="text-primary" />
-            <span>Instructions</span>
+        <section className="space-y-4">
+           <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400 uppercase tracking-widest mb-2">
+            <FileText size={12} />
+            <span>Guidance</span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
                 <div className="relative group">
                     <textarea
                         value={prePrompt}
                         onChange={(e) => setPrePrompt(e.target.value)}
-                        className="w-full h-28 px-3 py-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none leading-relaxed placeholder:text-slate-400 shadow-sm group-hover:border-slate-300"
-                        placeholder="Add instructions for the model (Pre-prompt)..."
+                        className="w-full h-32 px-4 py-4 bg-white border-none rounded-2xl text-xs text-stone-600 focus:ring-2 focus:ring-primary/10 transition-all resize-none leading-relaxed placeholder:text-stone-300 shadow-sm"
+                        placeholder="How should the model treat each piece of text?..."
                     />
-                    <div className="absolute bottom-2 right-2 pointer-events-none opacity-60">
-                         <FileText size={12} className="text-slate-400" />
-                    </div>
                 </div>
             </div>
 
             {/* Glossary Config */}
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-2 shadow-sm">
+            <div className="bg-white rounded-2xl p-4 space-y-3 shadow-soft">
                 <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
                          <div className="relative inline-flex items-center">
                             <input 
                                 type="checkbox" 
@@ -201,69 +197,64 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 checked={isGlossaryEnabled}
                                 onChange={(e) => setIsGlossaryEnabled(e.target.checked)}
                             />
-                            <div className="w-7 h-3.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-primary"></div>
+                            <div className="w-8 h-4 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
                         </div>
-                        <span className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
-                            <Book size={12}/> Glossary
+                        <span className="text-[11px] font-semibold text-stone-600 flex items-center gap-1.5">
+                            <Book size={12} className="opacity-70"/> Glossary
                         </span>
                     </label>
-                    <span className="text-[10px] text-slate-400 font-mono">{glossaryTerms.length} terms</span>
+                    <span className="text-[10px] text-stone-400 bg-stone-50 px-2 py-0.5 rounded-full">{glossaryTerms.length}</span>
                 </div>
                 
                 <button 
                     onClick={onOpenGlossary}
-                    className="w-full py-1.5 text-[10px] font-semibold bg-white border border-slate-200 hover:border-primary hover:text-primary rounded-lg transition-colors shadow-sm"
+                    className="w-full py-2 text-[10px] font-medium text-stone-500 hover:text-primary hover:bg-primary-light/20 rounded-lg transition-colors"
                 >
                     Manage Terms
                 </button>
             </div>
 
             <div>
-                <label className="block text-[11px] font-semibold text-slate-500 mb-1.5">Injection Mode</label>
-                <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                <label className="block text-[11px] font-medium text-stone-500 mb-2">Injection Strategy</label>
+                <div className="flex bg-stone-100/80 p-1 rounded-xl">
                     <button
                         onClick={() => setPromptMode('every')}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-semibold transition-all ${
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-medium transition-all ${
                             promptMode === 'every'
-                            ? 'bg-white text-primary shadow-sm ring-1 ring-black/5' 
-                            : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-white text-primary shadow-sm' 
+                            : 'text-stone-500 hover:text-stone-700'
                         }`}
                     >
-                        <Zap size={12}/> Every
+                        <Zap size={12}/> Constant
                     </button>
                     <button
                         onClick={() => setPromptMode('first')}
                         disabled={isParallel}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-semibold transition-all ${
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-medium transition-all ${
                             promptMode === 'first'
-                            ? 'bg-white text-primary shadow-sm ring-1 ring-black/5' 
-                            : 'text-slate-500 hover:text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed'
+                            ? 'bg-white text-primary shadow-sm' 
+                            : 'text-stone-500 hover:text-stone-700 disabled:opacity-40'
                         }`}
                     >
-                        <ArrowDownToLine size={12}/> First Only
+                        <ArrowDownToLine size={12}/> Initial Only
                     </button>
                 </div>
-                {isParallel && promptMode === 'every' && (
-                    <p className="text-[9px] text-slate-400 mt-1.5 px-1 text-center">
-                        "First Only" disabled in Parallel.
-                    </p>
-                )}
             </div>
           </div>
         </section>
 
         {/* Execution Section */}
-        <section className="space-y-3">
-           <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
-            <Layers size={14} className="text-primary" />
-            <span>Processing</span>
+        <section className="space-y-4">
+           <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400 uppercase tracking-widest mb-2">
+            <Layers size={12} />
+            <span>Execution</span>
           </div>
           
-          <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-4 shadow-sm">
-             <div className="flex bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+          <div className="bg-white rounded-2xl p-4 space-y-4 shadow-soft">
+             <div className="flex bg-stone-100/50 p-1 rounded-xl">
                  <button
                     onClick={() => setIsParallel(false)}
-                    className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wide rounded-md transition-all ${!isParallel ? 'bg-indigo-50 text-primary ring-1 ring-primary/10' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wide rounded-lg transition-all ${!isParallel ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
                  >
                     Serial
                  </button>
@@ -272,17 +263,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         setIsParallel(true);
                         setPromptMode('every');
                     }}
-                    className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wide rounded-md transition-all ${isParallel ? 'bg-indigo-50 text-primary ring-1 ring-primary/10' : 'text-slate-400 hover:text-slate-600'}`}
+                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wide rounded-lg transition-all ${isParallel ? 'bg-white text-primary shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
                  >
                     Parallel
                  </button>
              </div>
 
               {isParallel && (
-                 <div className="animate-fade-in">
-                    <div className="flex justify-between items-center mb-2">
-                        <label className="text-[11px] font-semibold text-slate-600">Concurrency</label>
-                        <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600 shadow-sm">{concurrencyLimit}x</span>
+                 <div className="animate-fade-in px-1">
+                    <div className="flex justify-between items-center mb-3">
+                        <label className="text-[11px] font-medium text-stone-600">Concurrency Limit</label>
+                        <span className="text-[10px] font-mono text-primary bg-primary-light/30 px-2 py-0.5 rounded-full">{concurrencyLimit}x</span>
                     </div>
                     <input
                       type="range"
@@ -290,53 +281,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       max="10"
                       value={concurrencyLimit}
                       onChange={(e) => setConcurrencyLimit(Number(e.target.value))}
-                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary hover:accent-primary-hover"
+                      className="w-full h-1.5 bg-stone-100 rounded-lg appearance-none cursor-pointer accent-primary hover:accent-primary-hover"
                     />
-                    <div className="flex justify-between text-[9px] text-slate-400 mt-1.5">
-                        <span>Conservative</span>
-                        <span>Aggressive</span>
-                    </div>
                  </div>
               )}
               
               {!isParallel && (
-                <>
-                    <div className="animate-fade-in bg-white rounded-lg border border-slate-200 p-2.5">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <div className="relative inline-flex items-center">
-                                <input 
-                                    type="checkbox" 
-                                    className="sr-only peer" 
-                                    checked={isContextual}
-                                    onChange={(e) => setIsContextual(e.target.checked)}
-                                />
-                                <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-700 flex items-center gap-1.5">
-                                Continuous Context
-                            </span>
-                        </label>
-                        <div className="mt-2 text-[9px] text-slate-400 leading-relaxed flex gap-1.5 items-start">
-                            <MessageSquare size={10} className="mt-0.5 shrink-0" />
-                            Chunks are sent in a single conversation history.
+                <div className="animate-fade-in pt-1">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className="relative inline-flex items-center">
+                            <input 
+                                type="checkbox" 
+                                className="sr-only peer" 
+                                checked={isContextual}
+                                onChange={(e) => setIsContextual(e.target.checked)}
+                            />
+                            <div className="w-8 h-4 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
                         </div>
+                        <span className="text-[11px] font-bold text-stone-700 flex items-center gap-1.5 group-hover:text-primary transition-colors">
+                            Contextual Memory
+                        </span>
+                    </label>
+                    <div className="mt-3 text-[10px] text-stone-400 leading-relaxed pl-1">
+                        Maintains conversation history across chunks for better continuity.
                     </div>
-
-                    <div className="flex gap-2 items-start px-1">
-                        <Info size={12} className="text-indigo-400 mt-0.5 shrink-0"/>
-                        <p className="text-[10px] text-slate-500 leading-relaxed">
-                            Processes one chunk at a time. 
-                            {isContextual ? ' Context is maintained across all chunks.' : ' Each chunk is an independent request.'}
-                        </p>
-                    </div>
-                </>
+                </div>
               )}
           </div>
         </section>
       </div>
       
-      <div className="p-3 border-t border-slate-100 bg-slate-50/50 text-center shrink-0">
-        <p className="text-[9px] font-medium text-slate-400">Local Processing • No Server Data</p>
+      <div className="p-4 bg-surface/30 backdrop-blur-sm text-center shrink-0">
+        <p className="text-[9px] font-medium text-stone-300 tracking-wide">Privacy Focused • Local Execution</p>
       </div>
     </div>
   );

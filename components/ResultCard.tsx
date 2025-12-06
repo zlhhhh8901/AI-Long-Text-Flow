@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { ChunkItem, GlossaryTerm, ProcessingStatus } from '../types';
-import { CheckCircle2, Circle, Loader2, AlertTriangle, ChevronDown, Copy, RefreshCw, Terminal, History } from 'lucide-react';
+import { Check, Circle, Loader2, AlertCircle, ChevronDown, Copy, RefreshCw, Terminal, History, ArrowRight } from 'lucide-react';
 import { constructUserMessageWithGlossary } from '../services/glossaryService';
 
 interface ResultCardProps {
@@ -37,26 +37,23 @@ export const ResultCard: React.FC<ResultCardProps> = ({
     }
   };
 
-  const getStatusIcon = () => {
+  const getStatusDisplay = () => {
     switch (chunk.status) {
-      case ProcessingStatus.SUCCESS: return <CheckCircle2 size={14} className="text-emerald-500" />;
-      case ProcessingStatus.PROCESSING: return <Loader2 size={14} className="text-primary animate-spin" />;
-      case ProcessingStatus.ERROR: return <AlertTriangle size={14} className="text-rose-500" />;
-      case ProcessingStatus.WAITING: return <Circle size={14} className="text-slate-300" />;
-      default: return <Circle size={14} className="text-slate-200" />;
+      case ProcessingStatus.SUCCESS: 
+        return { icon: <Check size={12} />, color: 'bg-emerald-50 text-emerald-600 border-emerald-100', text: 'Completed' };
+      case ProcessingStatus.PROCESSING: 
+        return { icon: <Loader2 size={12} className="animate-spin" />, color: 'bg-primary-light/30 text-primary border-primary-light', text: 'Thinking' };
+      case ProcessingStatus.ERROR: 
+        return { icon: <AlertCircle size={12} />, color: 'bg-rose-50 text-rose-600 border-rose-100', text: 'Interrupted' };
+      case ProcessingStatus.WAITING: 
+        return { icon: <Circle size={12} />, color: 'bg-stone-100 text-stone-400 border-stone-200', text: 'Queued' };
+      default: 
+        return { icon: <Circle size={12} />, color: 'bg-stone-50 text-stone-300 border-stone-100', text: 'Idle' };
     }
   };
 
-  const getStatusColor = () => {
-    switch (chunk.status) {
-        case ProcessingStatus.SUCCESS: return 'bg-emerald-50/50 border-emerald-200 text-emerald-700';
-        case ProcessingStatus.PROCESSING: return 'bg-indigo-50/50 border-indigo-200 text-indigo-700';
-        case ProcessingStatus.ERROR: return 'bg-rose-50/50 border-rose-200 text-rose-700';
-        default: return 'bg-slate-50 border-slate-200 text-slate-500';
-    }
-  };
+  const status = getStatusDisplay();
 
-  // Use shared logic to construct the full user message preview
   const finalUserMessage = constructUserMessageWithGlossary(
     chunk.rawContent,
     prePrompt,
@@ -64,73 +61,58 @@ export const ResultCard: React.FC<ResultCardProps> = ({
     isGlossaryEnabled
   );
 
-  // Construct the preview of what is sent to the API
   let requestPreview: any = {};
-
   if (isContextual) {
-      if (chunk.index === 1) {
-           requestPreview = {
-               mode: 'Contextual Session (Start)',
-               system_instruction: systemPrompt || undefined,
-               new_user_message: finalUserMessage
-           };
-      } else {
-           requestPreview = {
-               mode: 'Contextual Session (Continue)',
-               previous_context_turns: (chunk.index - 1) * 2,
-               new_user_message: finalUserMessage
-           };
-      }
+      requestPreview = {
+          mode: chunk.index === 1 ? 'Contextual (Start)' : 'Contextual (Continue)',
+          context_depth: chunk.index > 1 ? `${(chunk.index - 1)} turns` : 'None',
+          message: finalUserMessage
+      };
   } else {
-      const systemParts = [systemPrompt].filter(p => p && p.trim().length > 0);
-      const combinedSystemPrompt = systemParts.join('\n\n');
-
       requestPreview = {
         model: model,
-        mode: 'Independent Request',
-        messages: [
-          ...(combinedSystemPrompt ? [{ role: 'system', content: combinedSystemPrompt }] : []),
-          { role: 'user', content: finalUserMessage }
-        ]
+        message: finalUserMessage
       };
   }
 
   const hasOutput = !!chunk.result || !!chunk.errorMsg || chunk.status === ProcessingStatus.PROCESSING;
 
   return (
-    <div className={`bg-white rounded-lg shadow-sm border transition-all duration-200 ${chunk.status === ProcessingStatus.PROCESSING ? 'border-primary/50 shadow-primary/5' : 'border-slate-200 hover:border-slate-300'}`}>
-      {/* Header - Compact */}
+    <div className={`group bg-white rounded-2xl transition-all duration-300 overflow-hidden ${chunk.status === ProcessingStatus.PROCESSING ? 'shadow-glow ring-1 ring-primary/20' : 'shadow-soft hover:shadow-md'}`}>
+      
+      {/* Header - Minimal & Clean */}
       <div 
-        className="flex items-center justify-between px-4 py-2.5 cursor-pointer select-none group" 
+        className="flex items-center justify-between px-5 py-4 cursor-pointer select-none" 
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-6 h-6 rounded bg-slate-100 border border-slate-200 font-mono text-[10px] font-bold text-slate-500 group-hover:bg-slate-200 transition-colors">
+        <div className="flex items-center gap-4">
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full font-mono text-xs font-semibold transition-colors ${chunk.status === ProcessingStatus.SUCCESS ? 'bg-primary text-white' : 'bg-stone-100 text-stone-500'}`}>
             {chunk.index}
           </div>
           
-          <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${getStatusColor()}`}>
-             {getStatusIcon()}
-             <span>{chunk.status}</span>
-          </div>
-          
-          {chunk.status === ProcessingStatus.PROCESSING && (
-             <span className="text-[10px] text-slate-400 animate-pulse hidden sm:inline-block">Processing with {model}...</span>
-          )}
-          
-          {isContextual && (
-             <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100 text-[9px] font-semibold">
-                 <History size={10}/>
-                 <span>Context</span>
+          <div className="flex flex-col gap-0.5">
+             <div className="flex items-center gap-2">
+                 <span className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${status.color}`}>
+                    {status.icon}
+                    <span>{status.text}</span>
+                 </span>
+                 {isContextual && (
+                    <span className="flex items-center gap-1 text-[10px] text-stone-400 font-medium">
+                        <ArrowRight size={10} className="text-stone-300" /> Linked
+                    </span>
+                 )}
              </div>
-          )}
+             {chunk.status === ProcessingStatus.PROCESSING && (
+                 <span className="text-[10px] text-stone-400 animate-pulse ml-1">Refining output...</span>
+             )}
+          </div>
         </div>
         
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {chunk.status === ProcessingStatus.ERROR && (
             <button 
               onClick={(e) => {e.stopPropagation(); onRetry(chunk.id)}} 
-              className="p-1.5 hover:bg-rose-50 text-rose-500 rounded transition-colors" 
+              className="p-2 hover:bg-rose-50 text-rose-500 rounded-full transition-colors" 
               title="Retry"
             >
               <RefreshCw size={14} />
@@ -139,13 +121,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           {chunk.status === ProcessingStatus.SUCCESS && (
             <button 
               onClick={(e) => {e.stopPropagation(); handleCopy()}} 
-              className="p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded transition-colors" 
-              title="Copy Result"
+              className="p-2 hover:bg-stone-100 text-stone-400 hover:text-stone-600 rounded-full transition-colors" 
+              title="Copy"
             >
-              {copied ? <CheckCircle2 size={14} className="text-emerald-500"/> : <Copy size={14} />}
+              {copied ? <Check size={14} className="text-emerald-500"/> : <Copy size={14} />}
             </button>
           )}
-          <div className={`p-1 text-slate-300 hover:text-slate-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+          <div className={`p-2 text-stone-300 hover:text-stone-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
             <ChevronDown size={16} />
           </div>
         </div>
@@ -153,25 +135,25 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
       {/* Content Body */}
       {isExpanded && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 border-t border-slate-100 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 animate-slide-up">
+        <div className="grid grid-cols-1 lg:grid-cols-12 animate-slide-up border-t border-stone-50">
           
-          {/* Left Column: Input (Full width if no output yet) */}
-          <div className={`${hasOutput ? 'lg:col-span-5' : 'lg:col-span-12'} flex flex-col bg-slate-50/30 min-h-[180px] transition-all duration-300`}>
-             {/* Mini Toolbar */}
-             <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100/50 bg-slate-50/50">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Terminal size={12} /> Input Source
+          {/* Left Column: Input */}
+          <div className={`${hasOutput ? 'lg:col-span-5' : 'lg:col-span-12'} flex flex-col bg-stone-50/50 min-h-[200px] border-r border-stone-50`}>
+             <div className="flex items-center justify-between px-4 py-2 border-b border-stone-100/50">
+                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                    Source
                 </span>
-                <div className="flex bg-white p-0.5 rounded border border-slate-200">
+                <div className="flex gap-2">
                     <button 
                         onClick={() => setInputTab('raw')}
-                        className={`px-2 py-0.5 text-[9px] font-semibold rounded transition-all ${inputTab === 'raw' ? 'bg-slate-100 text-slate-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                        className={`text-[10px] font-medium transition-colors ${inputTab === 'raw' ? 'text-primary' : 'text-stone-400 hover:text-stone-600'}`}
                     >
-                        Raw
+                        Original
                     </button>
+                    <span className="text-stone-300">/</span>
                     <button 
                         onClick={() => setInputTab('preview')}
-                        className={`px-2 py-0.5 text-[9px] font-semibold rounded transition-all ${inputTab === 'preview' ? 'bg-indigo-50 text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                        className={`text-[10px] font-medium transition-colors ${inputTab === 'preview' ? 'text-primary' : 'text-stone-400 hover:text-stone-600'}`}
                     >
                         Payload
                     </button>
@@ -180,14 +162,14 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
              <div className="relative flex-1">
                {inputTab === 'raw' ? (
-                 <div className="absolute inset-0 p-3 overflow-y-auto custom-scrollbar">
-                    <p className="text-xs text-slate-600 font-mono whitespace-pre-wrap break-words leading-relaxed">
+                 <div className="absolute inset-0 p-5 overflow-y-auto custom-scrollbar">
+                    <p className="text-xs text-stone-600 font-mono whitespace-pre-wrap break-words leading-relaxed opacity-80">
                         {chunk.rawContent}
                     </p>
                  </div>
                ) : (
-                 <div className="absolute inset-0 p-3 overflow-y-auto custom-scrollbar bg-slate-50/50">
-                   <pre className="text-[10px] text-slate-600 font-mono whitespace-pre-wrap break-all">
+                 <div className="absolute inset-0 p-5 overflow-y-auto custom-scrollbar bg-stone-100/30">
+                   <pre className="text-[10px] text-stone-500 font-mono whitespace-pre-wrap break-all">
                      {JSON.stringify(requestPreview, null, 2)}
                    </pre>
                  </div>
@@ -195,27 +177,30 @@ export const ResultCard: React.FC<ResultCardProps> = ({
              </div>
           </div>
 
-          {/* Right Column: Output (Only shown if there is activity/result) */}
+          {/* Right Column: Output */}
           {hasOutput && (
-            <div className="lg:col-span-7 bg-white min-h-[180px] flex flex-col relative animate-fade-in">
+            <div className="lg:col-span-7 bg-white min-h-[200px] flex flex-col relative">
                 {chunk.result ? (
-                    <div className="p-4 flex-1">
-                        <div className="prose prose-sm prose-slate max-w-none prose-p:my-2 prose-headings:my-3 text-sm leading-relaxed text-slate-700">
+                    <div className="p-6 flex-1">
+                        <div className="prose prose-sm prose-stone max-w-none prose-p:my-3 prose-headings:font-semibold prose-headings:text-stone-800 text-stone-700 leading-7">
                             <ReactMarkdown>{chunk.result}</ReactMarkdown>
                         </div>
                     </div>
                 ) : chunk.errorMsg ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                        <div className="w-8 h-8 bg-rose-50 rounded-full flex items-center justify-center mb-2">
-                            <AlertTriangle size={16} className="text-rose-500"/>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                        <div className="w-10 h-10 bg-rose-50 rounded-full flex items-center justify-center mb-3">
+                            <AlertCircle size={18} className="text-rose-400"/>
                         </div>
-                        <p className="text-rose-600 font-medium text-xs">{chunk.errorMsg}</p>
-                        <button onClick={() => onRetry(chunk.id)} className="mt-2 text-[10px] bg-white border border-slate-200 px-2 py-1 rounded hover:bg-slate-50 text-slate-500">Retry</button>
+                        <p className="text-rose-600 font-medium text-sm">{chunk.errorMsg}</p>
+                        <button onClick={() => onRetry(chunk.id)} className="mt-3 text-xs px-3 py-1.5 bg-white border border-rose-100 text-rose-500 rounded-lg hover:bg-rose-50 transition-colors">Try Again</button>
                     </div>
                 ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40 pointer-events-none select-none">
-                         <Loader2 size={20} className="animate-spin text-primary mb-2" />
-                         <p className="text-xs font-medium text-slate-400">Generating Response...</p>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center opacity-60 pointer-events-none select-none">
+                         <div className="relative">
+                            <div className="absolute inset-0 bg-primary blur-xl opacity-20 animate-pulse-slow"></div>
+                            <Loader2 size={24} className="animate-spin text-primary relative z-10" />
+                         </div>
+                         <p className="text-xs font-medium text-stone-400 mt-4 tracking-wide">Synthesizing...</p>
                     </div>
                 )}
             </div>
