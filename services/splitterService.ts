@@ -2,6 +2,10 @@ import { ChunkItem, ProcessingStatus, SplitConfig, SplitMode } from '../types';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
+const escapeRegExp = (string: string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 export const splitText = (text: string, config: SplitConfig): ChunkItem[] => {
   let rawChunks: string[] = [];
 
@@ -40,15 +44,29 @@ export const splitText = (text: string, config: SplitConfig): ChunkItem[] => {
     }
     case SplitMode.CUSTOM: {
       try {
-        // Support regex if wrapped in / /
         const sep = config.customSeparator;
-        if (sep.startsWith('/') && sep.endsWith('/')) {
-            const regexBody = sep.slice(1, -1);
-            const regex = new RegExp(regexBody);
-            rawChunks = text.split(regex).filter(Boolean);
+        let regex: RegExp;
+
+        // Check if it looks like a regex literal: /pattern/flags
+        // We look for the first and last slash to extract body and flags
+        const firstSlash = sep.indexOf('/');
+        const lastSlash = sep.lastIndexOf('/');
+
+        if (firstSlash === 0 && lastSlash > 0 && lastSlash > firstSlash) {
+            // It is a regex provided by user, e.g. /Chapter \d+/i
+            const body = sep.substring(firstSlash + 1, lastSlash);
+            const flags = sep.substring(lastSlash + 1);
+            
+            // Use Lookahead (?=...) to split *before* the match.
+            // This ensures the match itself is kept and attached to the start of the following chunk.
+            regex = new RegExp(`(?=${body})`, flags);
         } else {
-            rawChunks = text.split(sep).filter(Boolean);
+            // String literal
+            // Escape special chars and wrap in lookahead
+            regex = new RegExp(`(?=${escapeRegExp(sep)})`);
         }
+        
+        rawChunks = text.split(regex);
       } catch (e) {
         console.error("Split error", e);
         rawChunks = [text];
