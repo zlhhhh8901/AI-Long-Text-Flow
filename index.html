@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI Long-Text Flow</title>
-    <!-- Google Fonts: Inter -->
+    <!-- Google Fonts: Poppins & Lora -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -15,31 +15,47 @@
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Inter', 'sans-serif'],
+              sans: ['Poppins', 'Arial', 'sans-serif'],
+              serif: ['Lora', 'Georgia', 'serif'],
             },
             colors: {
-              primary: {
-                DEFAULT: '#6366f1', // Indigo 500 (Softer)
-                hover: '#4f46e5',   // Indigo 600
-                light: '#e0e7ff',   // Indigo 100
-                dark: '#3730a3',    // Indigo 800
-                subtle: '#818cf8',  // Indigo 400
+              brand: {
+                dark: '#141413',
+                light: '#faf9f5',
+                mid: '#b0aea5',
+                subtle: '#e8e6dc',
+                orange: '#d97757',
+                blue: '#6a9bcc',
+                green: '#788c5d',
               },
-              secondary: '#64748b',
-              background: '#fafaf9', // Stone 50 (Warmer)
+              primary: {
+                DEFAULT: '#d97757', // Brand Orange
+                hover: '#bf6345',
+                light: '#fcede8',
+                dark: '#a65035',
+                subtle: '#e8e6dc',
+              },
+              secondary: '#6a9bcc', // Brand Blue
+              background: '#faf9f5', // Brand Light
               surface: '#ffffff',
+              // Remap stone to brand grays for automatic theme application
               stone: {
-                50: '#fafaf9',
-                100: '#f5f5f4',
-                200: '#e7e5e4',
-                300: '#d6d3d1',
-                800: '#292524',
+                50: '#faf9f5', // Brand Light
+                100: '#f2f0eb', 
+                200: '#e8e6dc', // Brand Light Gray
+                300: '#cfcdc5',
+                400: '#b0aea5', // Brand Mid Gray
+                500: '#94928a',
+                600: '#73716a',
+                700: '#52514b',
+                800: '#2e2d2b',
+                900: '#141413', // Brand Dark
               }
             },
             animation: {
-              'fade-in': 'fadeIn 0.4s ease-out',
-              'slide-up': 'slideUp 0.5s ease-out',
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'fade-in': 'fadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              'slide-up': 'slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             },
             keyframes: {
               fadeIn: {
@@ -47,46 +63,50 @@
                 '100%': { opacity: '1' },
               },
               slideUp: {
-                '0%': { transform: 'translateY(15px)', opacity: '0' },
+                '0%': { transform: 'translateY(20px)', opacity: '0' },
                 '100%': { transform: 'translateY(0)', opacity: '1' },
               }
             },
             boxShadow: {
-              'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-              'glow': '0 0 15px rgba(99, 102, 241, 0.3)',
+              'soft': '0 4px 12px -2px rgba(20, 20, 19, 0.08)',
+              'card': '0 0 0 1px rgba(176, 174, 165, 0.2), 0 2px 8px rgba(20, 20, 19, 0.05)',
+              'glow': '0 0 0 1px #d97757, 0 0 12px rgba(217, 119, 87, 0.2)',
             }
           }
         }
       }
     </script>
     <style>
-      /* Custom Scrollbar - Minimalist */
+      /* Custom Scrollbar - Matching Brand */
       ::-webkit-scrollbar {
-        width: 5px;
-        height: 5px;
+        width: 6px;
+        height: 6px;
       }
       ::-webkit-scrollbar-track {
         background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: #e7e5e4; /* Stone 200 */
+        background: #e8e6dc; /* Light Gray */
         border-radius: 10px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #a8a29e; /* Stone 400 */
+        background: #b0aea5; /* Mid Gray */
       }
       
-      /* Glassmorphism Utilities */
+      /* Editorial/Paper styling replacements for Glassmorphism */
       .glass {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background: #fcfbf9;
+        border-right: 1px solid #e8e6dc;
       }
       
       .glass-panel {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
+        background: #ffffff;
+        border: 1px solid #e8e6dc;
+        box-shadow: 0 4px 12px -2px rgba(20, 20, 19, 0.08);
+      }
+      
+      body {
+        color: #141413;
       }
     </style>
   <script type="importmap">
@@ -102,7 +122,7 @@
 }
 </script>
 </head>
-  <body class="bg-background text-stone-800 antialiased overflow-hidden font-sans selection:bg-primary-light selection:text-primary-dark">
+  <body class="bg-background text-brand-dark antialiased overflow-hidden font-sans selection:bg-brand-orange selection:text-white">
     <div id="root"></div>
   </body>
 </html>
