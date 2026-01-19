@@ -65,7 +65,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({
       };
   }
 
-  const hasOutput = !!chunk.result || !!chunk.errorMsg || chunk.status === ProcessingStatus.PROCESSING;
+  const hasOutput =
+    chunk.status === ProcessingStatus.PROCESSING ||
+    chunk.status === ProcessingStatus.SUCCESS ||
+    chunk.status === ProcessingStatus.ERROR ||
+    !!chunk.result;
 
   return (
     <div className={`group bg-white rounded-xl transition-all duration-300 overflow-hidden ${chunk.status === ProcessingStatus.PROCESSING ? 'shadow-glow ring-1 ring-brand-orange/30' : 'shadow-card hover:shadow-soft'}`}>
@@ -170,18 +174,18 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           {/* Right Column: Output */}
           {hasOutput && (
             <div className="lg:col-span-7 bg-white min-h-[200px] flex flex-col relative">
-                {chunk.result ? (
+                {chunk.status === ProcessingStatus.SUCCESS ? (
                     <div className="p-6 flex-1">
                         <div className="prose prose-sm prose-stone max-w-none prose-p:my-3 prose-headings:font-sans prose-headings:font-bold prose-headings:text-brand-dark text-stone-700 leading-7 font-serif">
-                            <ReactMarkdown>{chunk.result}</ReactMarkdown>
+                            <ReactMarkdown>{chunk.result || ''}</ReactMarkdown>
                         </div>
                     </div>
-                ) : chunk.errorMsg ? (
+                ) : chunk.status === ProcessingStatus.ERROR ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
                         <div className="w-10 h-10 bg-rose-50 rounded-full flex items-center justify-center mb-3">
                             <AlertCircle size={18} className="text-rose-400"/>
                         </div>
-                        <p className="text-rose-600 font-medium text-sm font-serif">{chunk.errorMsg}</p>
+                        <p className="text-rose-600 font-medium text-sm font-serif">{chunk.errorMsg || 'Unknown error'}</p>
                         <button onClick={() => onRetry(chunk.id)} className="mt-3 text-xs px-3 py-1.5 bg-white border border-rose-100 text-rose-500 rounded-lg hover:bg-rose-50 transition-colors font-sans font-medium">Try Again</button>
                     </div>
                 ) : (

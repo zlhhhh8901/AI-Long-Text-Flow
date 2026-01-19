@@ -14,6 +14,7 @@ function App() {
   // --- State ---
   const [sourceText, setSourceText] = useState<string>('');
   const [chunks, setChunks] = useState<ChunkItem[]>([]);
+  const [globalError, setGlobalError] = useState<string | null>(null);
   
   const [appConfig, setAppConfig] = useState<AppConfig>(() => {
     const saved = localStorage.getItem('ai-flow-config');
@@ -67,6 +68,8 @@ function App() {
   const activeRequestsRef = useRef(0);
   const isProcessingRef = useRef(false);
   const sessionRef = useRef<LLMSession | undefined>(undefined);
+  const haltedOnErrorRef = useRef(false);
+  const retryErrorsOnlyRef = useRef(false);
   
   useEffect(() => {
     isProcessingRef.current = isProcessing;
@@ -167,9 +170,12 @@ function App() {
     if (isProcessing) setIsProcessing(false);
     setSourceText('');
     setChunks([]);
+    setGlobalError(null);
     activeRequestsRef.current = 0;
     setActiveRequestCount(0);
     sessionRef.current = undefined;
+    haltedOnErrorRef.current = false;
+    retryErrorsOnlyRef.current = false;
   };
 
   const handleExport = (includeInput: boolean) => {
@@ -207,6 +213,14 @@ function App() {
     if (!isProcessingRef.current) return;
 
     setChunks(currentChunks => {
+        if (haltedOnErrorRef.current) {
+            // Do not schedule new work while halted on an error.
+            if (activeRequestsRef.current === 0) {
+                setTimeout(() => setIsProcessing(false), 0);
+            }
+            return currentChunks;
+        }
+
         const processingCount = activeRequestsRef.current;
         const limit = isParallel ? concurrencyLimit : 1;
         
@@ -222,6 +236,8 @@ function App() {
                 sessionRef.current = initializeSession(sessionConfig);
             } catch (e: any) {
                 console.error("Failed to init session", e);
+                setGlobalError(e?.message || String(e));
+                haltedOnErrorRef.current = true;
                 setIsProcessing(false);
                 return currentChunks;
             }
@@ -229,8 +245,19 @@ function App() {
 
         let candidates = [...currentChunks];
         let toTrigger: ChunkItem[] = [];
+        const hasErrors = candidates.some(c => c.status === ProcessingStatus.ERROR);
 
-        if (isParallel) {
+        if (hasErrors) {
+            if (isParallel) {
+                const availableSlots = limit - processingCount;
+                toTrigger = candidates
+                    .filter(c => c.status === ProcessingStatus.ERROR)
+                    .slice(0, availableSlots);
+            } else {
+                const firstError = candidates.find(c => c.status === ProcessingStatus.ERROR);
+                if (firstError) toTrigger = [firstError];
+            }
+        } else if (isParallel) {
             const availableSlots = limit - processingCount;
             toTrigger = candidates
                 .filter(c => c.status === ProcessingStatus.IDLE || c.status === ProcessingStatus.WAITING)
@@ -247,6 +274,10 @@ function App() {
              const allDone = candidates.every(c => c.status === ProcessingStatus.SUCCESS || c.status === ProcessingStatus.ERROR);
              if (allDone && processingCount === 0) {
                  setTimeout(() => setIsProcessing(false), 0); 
+             }
+             // If we started a "retry errors only" run in parallel mode, stop once errors are resolved.
+             if (!hasErrors && isParallel && retryErrorsOnlyRef.current && processingCount === 0) {
+                 setTimeout(() => setIsProcessing(false), 0);
              }
              return currentChunks;
         }
@@ -275,11 +306,18 @@ function App() {
                     })
                 .catch(err => {
                     updateChunkStatus(chunk.id, ProcessingStatus.ERROR, undefined, err.message);
+                    haltedOnErrorRef.current = true;
                 })
                 .finally(() => {
                     activeRequestsRef.current--;
                     setActiveRequestCount(activeRequestsRef.current);
-                    processQueue(); 
+                    if (haltedOnErrorRef.current) {
+                        if (activeRequestsRef.current === 0) {
+                            setIsProcessing(false);
+                        }
+                        return;
+                    }
+                    processQueue();
 	        });
         });
 
@@ -294,11 +332,28 @@ function App() {
   }, [isProcessing, chunks, processQueue]);
 
 	  const handleRetry = (id: string) => {
-	    updateChunkStatus(id, ProcessingStatus.IDLE, undefined, undefined);
+	    haltedOnErrorRef.current = false;
+	    retryErrorsOnlyRef.current = false;
+	    setGlobalError(null);
+	    setChunks(prev => prev.map(c => (c.id === id ? { ...c, status: ProcessingStatus.IDLE } : c)));
 	    if (!isProcessing) {
 	        setIsProcessing(true);
 	    }
 	  };
+
+      const handleStartPause = () => {
+        if (isProcessing) {
+          setIsProcessing(false);
+          return;
+        }
+        if (chunks.length === 0) return;
+
+        const hasErrors = chunks.some(c => c.status === ProcessingStatus.ERROR);
+        haltedOnErrorRef.current = false;
+        retryErrorsOnlyRef.current = isParallel && hasErrors;
+        setGlobalError(null);
+        setIsProcessing(true);
+      };
 
 	  // --- UI ---
 	  const isSessionMode = !isParallel && isContextual;
@@ -385,13 +440,18 @@ function App() {
                 )}
             </div>
 
-            <div className="flex items-center gap-4 shrink-0">
-                {chunks.length > 0 && (
-                    <div className="flex items-center gap-6 mr-2 animate-fade-in">
-                        <div className="hidden md:flex flex-col w-36 lg:w-52 xl:w-64 transition-all duration-500 ease-in-out">
-                            <div className="flex justify-between text-[10px] mb-1.5 uppercase tracking-wider font-bold font-sans">
-                                <span className="text-stone-400 truncate mr-2">{isParallel ? 'Parallel' : (isContextual ? 'Contextual' : 'Serial')}</span>
-                                <span className="text-stone-800">{Math.round(progress)}%</span>
+	            <div className="flex items-center gap-4 shrink-0">
+	                {globalError && (
+	                    <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-100 text-rose-700 text-[11px] font-semibold font-sans max-w-[340px]">
+	                        <span className="truncate">{globalError}</span>
+	                    </div>
+	                )}
+	                {chunks.length > 0 && (
+	                    <div className="flex items-center gap-6 mr-2 animate-fade-in">
+	                        <div className="hidden md:flex flex-col w-36 lg:w-52 xl:w-64 transition-all duration-500 ease-in-out">
+	                            <div className="flex justify-between text-[10px] mb-1.5 uppercase tracking-wider font-bold font-sans">
+	                                <span className="text-stone-400 truncate mr-2">{isParallel ? 'Parallel' : (isContextual ? 'Contextual' : 'Serial')}</span>
+	                                <span className="text-stone-800">{Math.round(progress)}%</span>
                             </div>
                             <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
                                 <div className="h-full bg-brand-orange transition-all duration-700 ease-out" style={{ width: `${progress}%` }}></div>
@@ -439,7 +499,7 @@ function App() {
                 <div className="h-8 w-px bg-stone-200 mx-1"></div>
 
                 <button 
-                    onClick={() => setIsProcessing(!isProcessing)}
+                    onClick={handleStartPause}
                     disabled={chunks.length === 0}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold shadow-md transition-all transform hover:-translate-y-0.5 active:translate-y-0 font-sans ${
                         isProcessing 
