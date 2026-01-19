@@ -331,18 +331,18 @@ function App() {
 
       <main className="flex-1 flex flex-col h-full min-w-0 z-10 relative">
         {/* Floating Toolbar */}
-        <div className="px-6 py-4 shrink-0">
-            <header className="bg-white border border-stone-200 rounded-xl flex items-center justify-between px-5 py-3 shadow-sm gap-4 transition-all hover:shadow-card">
+        <div className="px-6 py-4 shrink-0 overflow-x-auto custom-scrollbar">
+            <header className="bg-white border border-stone-200 rounded-xl flex items-center justify-between px-5 py-3 shadow-sm gap-4 transition-all hover:shadow-card min-w-max">
             <div className="flex items-center gap-3 shrink-0">
                 <button 
                     onClick={handlePaste} 
                     disabled={isProcessing}
                     className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-stone-600 bg-white border border-stone-200 hover:bg-stone-50 hover:text-brand-orange hover:border-brand-orange/30 rounded-lg transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-sans"
                 >
-                <Clipboard size={14} /> <span className="hidden sm:inline">Paste</span>
+                <Clipboard size={14} /> <span className="hidden lg:inline">Paste</span>
                 </button>
                 <label className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold text-stone-600 bg-white border border-stone-200 hover:bg-stone-50 hover:text-brand-orange hover:border-brand-orange/30 rounded-lg transition-all shadow-sm cursor-pointer font-sans ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
-                <Upload size={14} /> <span className="hidden sm:inline">Import</span>
+                <Upload size={14} /> <span className="hidden lg:inline">Import</span>
                 <input type="file" accept=".txt,.md" onChange={handleFileUpload} className="hidden" disabled={isProcessing}/>
                 </label>
                 {chunks.length > 0 && (
@@ -350,7 +350,7 @@ function App() {
                         onClick={handleClear} 
                         className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 hover:bg-rose-100 rounded-lg transition-all ml-2 font-sans"
                     >
-                    <Trash2 size={14} /> <span className="hidden sm:inline">Clear</span>
+                    <Trash2 size={14} /> <span className="hidden lg:inline">Clear</span>
                     </button>
                 )}
             </div>
@@ -358,12 +358,12 @@ function App() {
             <div className="flex items-center gap-4 shrink-0">
                 {chunks.length > 0 && (
                     <div className="flex items-center gap-6 mr-2 animate-fade-in">
-                        <div className="hidden md:flex flex-col min-w-[140px]">
+                        <div className="hidden md:flex flex-col w-36 lg:w-52 xl:w-64 transition-all duration-500 ease-in-out">
                             <div className="flex justify-between text-[10px] mb-1.5 uppercase tracking-wider font-bold font-sans">
-                                <span className="text-stone-400">{isParallel ? 'Parallel' : (isContextual ? 'Contextual' : 'Serial')}</span>
+                                <span className="text-stone-400 truncate mr-2">{isParallel ? 'Parallel' : (isContextual ? 'Contextual' : 'Serial')}</span>
                                 <span className="text-stone-800">{Math.round(progress)}%</span>
                             </div>
-                            <div className="w-36 h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                            <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
                                 <div className="h-full bg-brand-orange transition-all duration-700 ease-out" style={{ width: `${progress}%` }}></div>
                             </div>
                         </div>
@@ -417,7 +417,7 @@ function App() {
                         : 'bg-brand-orange text-white hover:bg-brand-orange/90 shadow-brand-orange/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:translate-y-0'
                     }`}
                 >
-                    {isProcessing ? <><Pause size={16} fill="currentColor"/> <span className="hidden sm:inline">Pause</span></> : <><Play size={16} fill="currentColor"/> <span className="hidden sm:inline">Start Flow</span></>}
+                    {isProcessing ? <><Pause size={16} fill="currentColor"/> <span className="hidden md:inline">Pause</span></> : <><Play size={16} fill="currentColor"/> <span className="hidden md:inline">Start Flow</span></>}
                 </button>
 
                 <button onClick={() => setIsSettingsOpen(true)} className="p-2.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors">
