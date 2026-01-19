@@ -12,7 +12,6 @@ export enum ProcessingStatus {
   ERROR = 'error',
 }
 
-export type PromptMode = 'every' | 'first';
 export type ModelProvider = 'openai' | 'gemini';
 
 export interface ChunkItem {

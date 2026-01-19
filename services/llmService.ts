@@ -41,7 +41,6 @@ export const initializeSession = (config: AppConfig): LLMSession => {
 export const processChunkWithLLM = async (
   text: string,
   config: AppConfig,
-  prePrompt: string,
   session?: LLMSession
 ): Promise<string> => {
   if (!config.apiKey) {
@@ -50,14 +49,10 @@ export const processChunkWithLLM = async (
 
   // --- Contextual / Session Mode ---
   if (session) {
-    // In session mode, prePrompt is prepended to the user message
-    // System prompt is already handled during session initialization
-    const content = prePrompt ? `${prePrompt}\n\n${text}` : text;
-
     if (session.provider === 'gemini') {
       if (!session.geminiChat) throw new Error("Gemini Session not initialized");
       try {
-        const response = await session.geminiChat.sendMessage({ message: content });
+        const response = await session.geminiChat.sendMessage({ message: text });
         return response.text || "";
       } catch (error: any) {
         console.error("Gemini Session Request Failed", error);
@@ -68,7 +63,7 @@ export const processChunkWithLLM = async (
       if (!session.openaiHistory) throw new Error("OpenAI Session not initialized");
       
       // Optimistically add User Message
-      session.openaiHistory.push({ role: 'user', content: content });
+      session.openaiHistory.push({ role: 'user', content: text });
 
       const baseUrl = config.baseUrl.replace(/\/$/, '');
       const endpoint = `${baseUrl}/chat/completions`;
@@ -110,7 +105,7 @@ export const processChunkWithLLM = async (
       } catch (error: any) {
          // If network failed, check if we need to cleanup the user message
          const lastMsg = session.openaiHistory[session.openaiHistory.length - 1];
-         if (lastMsg && lastMsg.role === 'user' && lastMsg.content === content) {
+         if (lastMsg && lastMsg.role === 'user' && lastMsg.content === text) {
              session.openaiHistory.pop();
          }
          console.error("LLM Request Failed", error);
@@ -123,8 +118,7 @@ export const processChunkWithLLM = async (
 
   // Construct System Message Content
   // Filter out empty parts to avoid leading newlines or sending empty system messages
-  const systemParts = [config.systemPrompt, prePrompt].filter(p => p && p.trim().length > 0);
-  const systemContent = systemParts.join('\n\n');
+  const systemContent = config.systemPrompt?.trim() || '';
 
   // --- Gemini Provider ---
   if (config.provider === 'gemini') {

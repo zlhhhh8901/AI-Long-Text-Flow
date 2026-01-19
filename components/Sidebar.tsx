@@ -1,5 +1,5 @@
 import React from 'react';
-import { PromptMode, SplitConfig, SplitMode, GlossaryTerm } from '../types';
+import { SplitConfig, SplitMode, GlossaryTerm } from '../types';
 import { 
   AlignJustify, 
   Scissors, 
@@ -18,16 +18,14 @@ import {
 interface SidebarProps {
   splitConfig: SplitConfig;
   setSplitConfig: (config: SplitConfig) => void;
-  prePrompt: string;
-  setPrePrompt: (val: string) => void;
   isParallel: boolean;
   setIsParallel: (val: boolean) => void;
   concurrencyLimit: number;
   setConcurrencyLimit: (val: number) => void;
-  promptMode: PromptMode;
-  setPromptMode: (val: PromptMode) => void;
   isContextual: boolean;
   setIsContextual: (val: boolean) => void;
+  systemPrompt: string;
+  setSystemPrompt: (val: string) => void;
   glossaryTerms: GlossaryTerm[];
   isGlossaryEnabled: boolean;
   setIsGlossaryEnabled: (val: boolean) => void;
@@ -38,16 +36,14 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   splitConfig,
   setSplitConfig,
-  prePrompt,
-  setPrePrompt,
   isParallel,
   setIsParallel,
   concurrencyLimit,
   setConcurrencyLimit,
-  promptMode,
-  setPromptMode,
   isContextual,
   setIsContextual,
+  systemPrompt,
+  setSystemPrompt,
   glossaryTerms,
   isGlossaryEnabled,
   setIsGlossaryEnabled,
@@ -167,42 +163,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </section>
 
-        {/* Prompts Section */}
-        <section className="space-y-4">
-           <div className="flex items-center justify-between mb-2">
-               <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans">
-                <FileText size={12} />
-                <span>Guidance</span>
-              </div>
-              
-              <label className={`flex items-center gap-2 cursor-pointer group select-none ${isParallel ? 'opacity-40 pointer-events-none' : ''}`} title={isParallel ? "Not available in Parallel mode" : "Inject guidance only in the first chunk"}>
-                  <span className={`text-[9px] font-bold uppercase tracking-wider transition-colors ${promptMode === 'first' ? 'text-brand-orange' : 'text-stone-300 group-hover:text-stone-400'}`}>
-                    Initial Only
-                  </span>
-                   <div className="relative inline-flex items-center">
-                        <input 
-                            type="checkbox" 
-                            className="sr-only peer" 
-                            checked={promptMode === 'first'}
-                            onChange={(e) => setPromptMode(e.target.checked ? 'first' : 'every')}
-                            disabled={isParallel}
-                        />
-                        <div className="w-7 h-3.5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1.5px] after:left-[1.5px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-[11px] after:w-[11px] after:transition-all peer-checked:bg-brand-orange"></div>
-                    </div>
-              </label>
-          </div>
+	        {/* Prompts Section */}
+	        <section className="space-y-4">
+	           <div className="flex items-center justify-between mb-2">
+	               <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans">
+	                <FileText size={12} />
+	                <span>Prompt</span>
+	              </div>
+	          </div>
 
-          <div className="space-y-4">
-            <div>
-                <div className="relative group">
-                    <textarea
-                        value={prePrompt}
-                        onChange={(e) => setPrePrompt(e.target.value)}
-                        className="w-full h-32 px-4 py-4 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange transition-all resize-none leading-7 placeholder:text-stone-300 shadow-sm font-serif"
-                        placeholder="Enter a prefix prompt. By default it appears before every text block; in INITIAL ONLY mode, only before the first."
-                    />
-                </div>
-            </div>
+	          <div className="space-y-4">
+	            <div>
+	                <div className="relative group">
+	                    <textarea
+	                        value={systemPrompt}
+	                        onChange={(e) => setSystemPrompt(e.target.value)}
+	                        className="w-full h-32 px-4 py-4 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange transition-all resize-none leading-7 placeholder:text-stone-300 shadow-sm font-serif"
+	                        placeholder="Enter your main prompt (applies globally)."
+	                    />
+	                </div>
+	            </div>
 
             {/* Glossary Config */}
             <div className="bg-white rounded-xl p-4 space-y-3 shadow-card border border-stone-200">
@@ -249,15 +229,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                  >
                     Serial
                  </button>
-                 <button
-                    onClick={() => {
-                        setIsParallel(true);
-                        setPromptMode('every');
-                    }}
-                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wide rounded-md transition-all ${isParallel ? 'bg-white text-brand-orange shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
-                 >
-                    Parallel
-                 </button>
+	                 <button
+	                    onClick={() => {
+	                        setIsParallel(true);
+	                    }}
+	                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wide rounded-md transition-all ${isParallel ? 'bg-white text-brand-orange shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+	                 >
+	                    Parallel
+	                 </button>
              </div>
 
               {isParallel && (

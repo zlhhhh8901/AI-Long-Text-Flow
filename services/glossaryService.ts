@@ -2,6 +2,9 @@ import { GlossaryTerm } from '../types';
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+export const DEFAULT_GLOSSARY_PROMPT =
+  'If any of the following terms appear in the text, treat them as translation references (not mandatory). Prefer consistency, but adapt to context.';
+
 export const normalizeGlossaryKey = (term: string): string =>
   term.trim().replace(/\s+/g, ' ').toLowerCase();
 
@@ -83,49 +86,19 @@ export const findMatchingTerms = (content: string, allTerms: GlossaryTerm[]): Gl
 /**
  * Formats matched terms into a prompt section.
  */
-export const formatGlossarySection = (terms: GlossaryTerm[]): string => {
+export const formatGlossarySection = (terms: GlossaryTerm[], glossaryPrompt: string): string => {
   if (terms.length === 0) return '';
 
   const lines = terms.map(t => `- ${t.term}: ${t.definition}`);
-  
+
+  const prompt = (glossaryPrompt || '').trim() || DEFAULT_GLOSSARY_PROMPT;
+
   return `### Terminology / Glossary
-Please strictly use the following definitions for these terms if they appear in the text:
+${prompt}
 ${lines.join('\n')}`;
 };
 
-/**
- * Helper to construct the full user message with glossary injected.
- * This ensures consistency between the actual API call and the UI preview.
- */
-export const constructUserMessageWithGlossary = (
-  originalContent: string, 
-  prePrompt: string, 
-  allTerms: GlossaryTerm[],
-  isGlossaryEnabled: boolean
-): string => {
-  let finalContent = originalContent;
-  let glossarySection = '';
-
-  if (isGlossaryEnabled) {
-    const matches = findMatchingTerms(originalContent, allTerms);
-    if (matches.length > 0) {
-      glossarySection = formatGlossarySection(matches);
-    }
-  }
-
-  // Construct the final message block
-  // Order: Pre-Prompt -> Glossary -> Content
-  const parts = [];
-  
-  if (prePrompt && prePrompt.trim()) {
-    parts.push(prePrompt.trim());
-  }
-
-  if (glossarySection) {
-    parts.push(glossarySection);
-  }
-
-  parts.push(finalContent);
-
+export const buildEffectiveSystemPrompt = (baseSystemPrompt: string, glossarySection: string): string => {
+  const parts = [baseSystemPrompt, glossarySection].map(p => (p || '').trim()).filter(Boolean);
   return parts.join('\n\n');
 };

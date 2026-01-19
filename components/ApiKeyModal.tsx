@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, AlertCircle, Server, Key, Cpu, Zap } from 'lucide-react';
 import { AppConfig, ModelProvider } from '../types';
 
@@ -11,9 +11,13 @@ interface ApiKeyModalProps {
 
 export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, config, onSave }) => {
   const [localConfig, setLocalConfig] = useState<AppConfig>(config);
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
-    setLocalConfig(config);
+    if (isOpen && !wasOpenRef.current) {
+      setLocalConfig(config);
+    }
+    wasOpenRef.current = isOpen;
   }, [config, isOpen]);
 
   if (!isOpen) return null;
@@ -47,7 +51,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, confi
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
           
           {/* Provider Selector */}
           <div>
@@ -139,7 +143,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, confi
               </div>
             </div>
           </div>
-          
+
           <div className="bg-brand-blue/5 p-4 rounded-xl border border-brand-blue/20 flex gap-3">
             <AlertCircle size={18} className="text-brand-blue shrink-0 mt-0.5"/>
             <p className="text-xs text-brand-blue leading-relaxed font-serif">

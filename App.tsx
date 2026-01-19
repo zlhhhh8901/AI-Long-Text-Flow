@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { PasteModal } from './components/PasteModal';
 import { GlossaryModal } from './components/GlossaryModal';
 import { ResultCard } from './components/ResultCard';
-import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, PromptMode, SplitConfig, GlossaryTerm } from './types';
+import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, SplitConfig, GlossaryTerm } from './types';
 import { splitText } from './services/splitterService';
 import { processChunkWithLLM, initializeSession, LLMSession } from './services/llmService';
-import { constructUserMessageWithGlossary, mergeGlossaryTerms } from './services/glossaryService';
+import { buildEffectiveSystemPrompt, DEFAULT_GLOSSARY_PROMPT, findMatchingTerms, formatGlossarySection, mergeGlossaryTerms } from './services/glossaryService';
 import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Sparkles, FileText, MessageSquare, Feather } from 'lucide-react';
 
 function App() {
@@ -24,11 +24,9 @@ function App() {
     return DEFAULT_CONFIG;
   });
   const [splitConfig, setSplitConfig] = useState<SplitConfig>(DEFAULT_SPLIT_CONFIG);
-  const [prePrompt, setPrePrompt] = useState('');
   const [isParallel, setIsParallel] = useState(false);
   const [isContextual, setIsContextual] = useState(false);
   const [concurrencyLimit, setConcurrencyLimit] = useState(3);
-  const [promptMode, setPromptMode] = useState<PromptMode>('every');
   
   // Glossary State
   const [glossaryTerms, setGlossaryTerms] = useState<GlossaryTerm[]>(() => {
@@ -36,10 +34,23 @@ function App() {
     if (!saved) return [];
     try {
       const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed)) return [];
-      return mergeGlossaryTerms([], parsed as GlossaryTerm[]);
+      const terms = Array.isArray(parsed) ? parsed : parsed?.terms;
+      if (!Array.isArray(terms)) return [];
+      return mergeGlossaryTerms([], terms as GlossaryTerm[]);
     } catch {
       return [];
+    }
+  });
+  const [glossaryPrompt, setGlossaryPrompt] = useState<string>(() => {
+    const saved = localStorage.getItem('ai-flow-glossary');
+    if (!saved) return DEFAULT_GLOSSARY_PROMPT;
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return DEFAULT_GLOSSARY_PROMPT;
+      if (parsed && typeof parsed === 'object' && typeof parsed.prompt === 'string') return parsed.prompt;
+      return DEFAULT_GLOSSARY_PROMPT;
+    } catch {
+      return DEFAULT_GLOSSARY_PROMPT;
     }
   });
   const [isGlossaryEnabled, setIsGlossaryEnabled] = useState(false);
@@ -74,16 +85,24 @@ function App() {
   // Clear session when critical config changes or source changes
   useEffect(() => {
     sessionRef.current = undefined;
-  }, [appConfig.provider, appConfig.apiKey, appConfig.model, appConfig.systemPrompt, isContextual, sourceText]);
+  }, [appConfig.provider, appConfig.apiKey, appConfig.model, appConfig.systemPrompt, isContextual, sourceText, isGlossaryEnabled, glossaryPrompt, glossaryTerms]);
 
   // Persist Glossary
   useEffect(() => {
-    localStorage.setItem('ai-flow-glossary', JSON.stringify(glossaryTerms));
-  }, [glossaryTerms]);
+    localStorage.setItem('ai-flow-glossary', JSON.stringify({ terms: glossaryTerms, prompt: glossaryPrompt }));
+  }, [glossaryTerms, glossaryPrompt]);
 
   const saveConfig = (newConfig: AppConfig) => {
     setAppConfig(newConfig);
     localStorage.setItem('ai-flow-config', JSON.stringify(newConfig));
+  };
+
+  const setSystemPrompt = (systemPrompt: string) => {
+    setAppConfig(prev => {
+      const next = { ...prev, systemPrompt };
+      localStorage.setItem('ai-flow-config', JSON.stringify(next));
+      return next;
+    });
   };
 
   // --- Handlers ---
@@ -196,7 +215,11 @@ function App() {
         // Initialize Session if Contextual Mode and not initialized
         if (!isParallel && isContextual && !sessionRef.current) {
             try {
-                sessionRef.current = initializeSession(appConfig);
+                const matches = isGlossaryEnabled ? findMatchingTerms(sourceText, glossaryTerms) : [];
+                const glossarySection = isGlossaryEnabled ? formatGlossarySection(matches, glossaryPrompt) : '';
+                const effectiveSystemPrompt = buildEffectiveSystemPrompt(appConfig.systemPrompt, glossarySection);
+                const sessionConfig: AppConfig = { ...appConfig, systemPrompt: effectiveSystemPrompt };
+                sessionRef.current = initializeSession(sessionConfig);
             } catch (e: any) {
                 console.error("Failed to init session", e);
                 setIsProcessing(false);
@@ -228,35 +251,28 @@ function App() {
              return currentChunks;
         }
 
-        const idsToTrigger = new Set(toTrigger.map(c => c.id));
-        const newChunks = candidates.map(c => 
-            idsToTrigger.has(c.id) ? { ...c, status: ProcessingStatus.PROCESSING } : c
-        );
-        
-        toTrigger.forEach(chunk => {
-            activeRequestsRef.current++;
-            setActiveRequestCount(activeRequestsRef.current);
+	        const idsToTrigger = new Set(toTrigger.map(c => c.id));
+	        const newChunks = candidates.map(c => 
+	            idsToTrigger.has(c.id) ? { ...c, status: ProcessingStatus.PROCESSING } : c
+	        );
+	        
+	        toTrigger.forEach(chunk => {
+	            activeRequestsRef.current++;
+	            setActiveRequestCount(activeRequestsRef.current);
 
-            let chunkPrePrompt = prePrompt;
-            if (promptMode === 'first') {
-                if (chunk.index !== 1) {
-                    chunkPrePrompt = '';
-                }
-            }
+                const finalUserMessage = chunk.rawContent;
 
-            const finalUserMessage = constructUserMessageWithGlossary(
-                chunk.rawContent,
-                chunkPrePrompt,
-                glossaryTerms,
-                isGlossaryEnabled
-            );
+                const activeSession = (!isParallel && isContextual) ? sessionRef.current : undefined;
 
-            const activeSession = (!isParallel && isContextual) ? sessionRef.current : undefined;
+                const chunkMatches = (!activeSession && isGlossaryEnabled) ? findMatchingTerms(chunk.rawContent, glossaryTerms) : [];
+                const glossarySection = (!activeSession && isGlossaryEnabled) ? formatGlossarySection(chunkMatches, glossaryPrompt) : '';
+                const effectiveSystemPrompt = buildEffectiveSystemPrompt(appConfig.systemPrompt, glossarySection);
+                const requestConfig: AppConfig = activeSession ? appConfig : { ...appConfig, systemPrompt: effectiveSystemPrompt };
 
-            processChunkWithLLM(finalUserMessage, appConfig, '', activeSession)
-                .then(result => {
-                    updateChunkStatus(chunk.id, ProcessingStatus.SUCCESS, result);
-                })
+                processChunkWithLLM(finalUserMessage, requestConfig, activeSession)
+                    .then(result => {
+                        updateChunkStatus(chunk.id, ProcessingStatus.SUCCESS, result);
+                    })
                 .catch(err => {
                     updateChunkStatus(chunk.id, ProcessingStatus.ERROR, undefined, err.message);
                 })
@@ -264,12 +280,12 @@ function App() {
                     activeRequestsRef.current--;
                     setActiveRequestCount(activeRequestsRef.current);
                     processQueue(); 
-                });
+	        });
         });
 
         return newChunks;
     });
-  }, [appConfig, prePrompt, isParallel, concurrencyLimit, updateChunkStatus, promptMode, isContextual, glossaryTerms, isGlossaryEnabled]);
+		  }, [appConfig, isParallel, concurrencyLimit, updateChunkStatus, isContextual, glossaryTerms, isGlossaryEnabled, glossaryPrompt, sourceText]);
 
   useEffect(() => {
     if (isProcessing) {
@@ -277,18 +293,27 @@ function App() {
     }
   }, [isProcessing, chunks, processQueue]);
 
-  const handleRetry = (id: string) => {
-    updateChunkStatus(id, ProcessingStatus.IDLE, undefined, undefined);
-    if (!isProcessing) {
-        setIsProcessing(true);
-    }
-  };
+	  const handleRetry = (id: string) => {
+	    updateChunkStatus(id, ProcessingStatus.IDLE, undefined, undefined);
+	    if (!isProcessing) {
+	        setIsProcessing(true);
+	    }
+	  };
 
-  // --- UI ---
-  
-  const completedCount = chunks.filter(c => c.status === ProcessingStatus.SUCCESS).length;
-  const totalCount = chunks.length;
-  const progress = totalCount === 0 ? 0 : (completedCount / totalCount) * 100;
+	  // --- UI ---
+	  const isSessionMode = !isParallel && isContextual;
+	  const glossaryEnabled = isGlossaryEnabled && glossaryTerms.length > 0;
+
+	  const effectiveSessionSystemPrompt = useMemo(() => {
+	    if (!isSessionMode || !glossaryEnabled) return appConfig.systemPrompt;
+	    const matches = findMatchingTerms(sourceText, glossaryTerms);
+	    const glossarySection = formatGlossarySection(matches, glossaryPrompt);
+	    return buildEffectiveSystemPrompt(appConfig.systemPrompt, glossarySection);
+	  }, [appConfig.systemPrompt, glossaryEnabled, glossaryPrompt, glossaryTerms, isSessionMode, sourceText]);
+	  
+	  const completedCount = chunks.filter(c => c.status === ProcessingStatus.SUCCESS).length;
+	  const totalCount = chunks.length;
+	  const progress = totalCount === 0 ? 0 : (completedCount / totalCount) * 100;
 
   return (
     <div 
@@ -315,23 +340,21 @@ function App() {
         </div>
       )}
 
-      <Sidebar 
-        splitConfig={splitConfig}
-        setSplitConfig={setSplitConfig}
-        prePrompt={prePrompt}
-        setPrePrompt={setPrePrompt}
-        isParallel={isParallel}
-        setIsParallel={setIsParallel}
-        concurrencyLimit={concurrencyLimit}
-        setConcurrencyLimit={setConcurrencyLimit}
-        promptMode={promptMode}
-        setPromptMode={setPromptMode}
-        isContextual={isContextual}
-        setIsContextual={setIsContextual}
-        disabled={isProcessing}
-        // Glossary Props
-        glossaryTerms={glossaryTerms}
-        isGlossaryEnabled={isGlossaryEnabled}
+	      <Sidebar 
+	        splitConfig={splitConfig}
+	        setSplitConfig={setSplitConfig}
+	        isParallel={isParallel}
+	        setIsParallel={setIsParallel}
+	        concurrencyLimit={concurrencyLimit}
+	        setConcurrencyLimit={setConcurrencyLimit}
+	        isContextual={isContextual}
+	        setIsContextual={setIsContextual}
+	        systemPrompt={appConfig.systemPrompt}
+	        setSystemPrompt={setSystemPrompt}
+	        disabled={isProcessing}
+	        // Glossary Props
+	        glossaryTerms={glossaryTerms}
+	        isGlossaryEnabled={isGlossaryEnabled}
         setIsGlossaryEnabled={setIsGlossaryEnabled}
         onOpenGlossary={() => setIsGlossaryModalOpen(true)}
       />
@@ -467,28 +490,27 @@ function App() {
                     )}
                 </div>
             ) : (
-                <div className="space-y-6 max-w-4xl mx-auto pt-2 animate-fade-in">
-                    {chunks.map(chunk => {
-                        const effectivePrePrompt = (promptMode === 'first' && chunk.index > 1) 
-                            ? '' 
-                            : prePrompt;
-                        
-                        return (
-                            <ResultCard 
-                                key={chunk.id} 
-                                chunk={chunk} 
-                                onRetry={handleRetry} 
-                                systemPrompt={appConfig.systemPrompt}
-                                prePrompt={effectivePrePrompt}
-                                model={appConfig.model}
-                                isContextual={!isParallel && isContextual}
-                                // Glossary Props
-                                glossaryTerms={glossaryTerms}
-                                isGlossaryEnabled={isGlossaryEnabled}
-                            />
-                        );
-                    })}
-                </div>
+		                <div className="space-y-6 max-w-4xl mx-auto pt-2 animate-fade-in">
+		                    {chunks.map(chunk => {
+		                        const glossarySection = (!isSessionMode && glossaryEnabled)
+		                          ? formatGlossarySection(findMatchingTerms(chunk.rawContent, glossaryTerms), glossaryPrompt)
+		                          : '';
+		                        const effectiveSystemPrompt = isSessionMode
+		                          ? effectiveSessionSystemPrompt
+		                          : buildEffectiveSystemPrompt(appConfig.systemPrompt, glossarySection);
+
+		                        return (
+		                            <ResultCard 
+		                                key={chunk.id} 
+		                                chunk={chunk} 
+		                                onRetry={handleRetry} 
+		                                effectiveSystemPrompt={effectiveSystemPrompt}
+		                                model={appConfig.model}
+		                                isContextual={isSessionMode}
+		                            />
+		                        );
+		                    })}
+		                </div>
             )}
         </div>
       </main>
@@ -511,6 +533,8 @@ function App() {
         onClose={() => setIsGlossaryModalOpen(false)}
         terms={glossaryTerms}
         onUpdateTerms={setGlossaryTerms}
+        prompt={glossaryPrompt}
+        onUpdatePrompt={setGlossaryPrompt}
       />
     </div>
   );

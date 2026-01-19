@@ -1,29 +1,22 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { ChunkItem, GlossaryTerm, ProcessingStatus } from '../types';
+import { ChunkItem, ProcessingStatus } from '../types';
 import { Check, Circle, Loader2, AlertCircle, ChevronDown, Copy, RefreshCw, Terminal, History, ArrowRight } from 'lucide-react';
-import { constructUserMessageWithGlossary } from '../services/glossaryService';
 
 interface ResultCardProps {
   chunk: ChunkItem;
   onRetry: (id: string) => void;
-  systemPrompt: string;
-  prePrompt: string;
+  effectiveSystemPrompt: string;
   model: string;
   isContextual?: boolean;
-  glossaryTerms: GlossaryTerm[];
-  isGlossaryEnabled: boolean;
 }
 
 export const ResultCard: React.FC<ResultCardProps> = ({ 
   chunk, 
   onRetry,
-  systemPrompt,
-  prePrompt,
+  effectiveSystemPrompt,
   model,
-  isContextual = false,
-  glossaryTerms,
-  isGlossaryEnabled
+  isContextual = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -54,23 +47,20 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
   const status = getStatusDisplay();
 
-  const finalUserMessage = constructUserMessageWithGlossary(
-    chunk.rawContent,
-    prePrompt,
-    glossaryTerms,
-    isGlossaryEnabled
-  );
+  const finalUserMessage = chunk.rawContent;
 
   let requestPreview: any = {};
   if (isContextual) {
       requestPreview = {
           mode: chunk.index === 1 ? 'Contextual (Start)' : 'Contextual (Continue)',
           context_depth: chunk.index > 1 ? `${(chunk.index - 1)} turns` : 'None',
+          system: (chunk.index === 1 && effectiveSystemPrompt?.trim()) ? effectiveSystemPrompt.trim() : undefined,
           message: finalUserMessage
       };
   } else {
       requestPreview = {
         model: model,
+        system: effectiveSystemPrompt?.trim() ? effectiveSystemPrompt.trim() : undefined,
         message: finalUserMessage
       };
   }

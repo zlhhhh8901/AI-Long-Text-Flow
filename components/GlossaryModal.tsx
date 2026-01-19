@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, Book, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { X, Plus, Trash2, Book, FileSpreadsheet, AlertCircle, MessageSquare, RotateCcw } from 'lucide-react';
 import { GlossaryTerm } from '../types';
-import { mergeGlossaryTerms, normalizeGlossaryKey } from '../services/glossaryService';
+import { DEFAULT_GLOSSARY_PROMPT, mergeGlossaryTerms, normalizeGlossaryKey } from '../services/glossaryService';
 
 interface GlossaryModalProps {
   isOpen: boolean;
   onClose: () => void;
   terms: GlossaryTerm[];
   onUpdateTerms: (terms: GlossaryTerm[]) => void;
+  prompt: string;
+  onUpdatePrompt: (prompt: string) => void;
 }
 
-export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, terms, onUpdateTerms }) => {
+export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, terms, onUpdateTerms, prompt, onUpdatePrompt }) => {
   const [newTerm, setNewTerm] = useState('');
   const [newDef, setNewDef] = useState('');
   const [importText, setImportText] = useState('');
-  const [mode, setMode] = useState<'list' | 'import'>('list');
+  const [mode, setMode] = useState<'list' | 'import' | 'prompt'>('list');
 
   if (!isOpen) return null;
 
@@ -96,33 +98,39 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
                 <Book size={20} className="text-brand-orange"/>
                 Glossary Management
              </h2>
-             <p className="text-xs text-stone-500 mt-1 font-serif">Define terms to be automatically injected into prompts.</p>
+	             <p className="text-xs text-stone-500 mt-1 font-serif">Define translation references to be injected into the effective system prompt.</p>
           </div>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-700 hover:bg-stone-200 rounded-full p-1 transition-all">
             <X size={20} />
           </button>
         </div>
 
-        {/* Toolbar */}
-        <div className="px-5 py-3 border-b border-stone-100 flex gap-2 bg-white">
-            <button 
-                onClick={() => setMode('list')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-2 transition-all font-sans ${mode === 'list' ? 'bg-brand-orange/10 text-brand-orange' : 'text-stone-500 hover:bg-stone-50'}`}
-            >
-                <Book size={14}/> Term List ({terms.length})
-            </button>
-            <button 
-                onClick={() => setMode('import')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-2 transition-all font-sans ${mode === 'import' ? 'bg-brand-orange/10 text-brand-orange' : 'text-stone-500 hover:bg-stone-50'}`}
-            >
-                <FileSpreadsheet size={14}/> Bulk Import
-            </button>
-        </div>
+	        {/* Toolbar */}
+	        <div className="px-5 py-3 border-b border-stone-100 flex gap-2 bg-white">
+	            <button 
+	                onClick={() => setMode('list')}
+	                className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-2 transition-all font-sans ${mode === 'list' ? 'bg-brand-orange/10 text-brand-orange' : 'text-stone-500 hover:bg-stone-50'}`}
+	            >
+	                <Book size={14}/> Term List ({terms.length})
+	            </button>
+	            <button 
+	                onClick={() => setMode('import')}
+	                className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-2 transition-all font-sans ${mode === 'import' ? 'bg-brand-orange/10 text-brand-orange' : 'text-stone-500 hover:bg-stone-50'}`}
+	            >
+	                <FileSpreadsheet size={14}/> Bulk Import
+	            </button>
+	            <button 
+	                onClick={() => setMode('prompt')}
+	                className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-2 transition-all font-sans ${mode === 'prompt' ? 'bg-brand-orange/10 text-brand-orange' : 'text-stone-500 hover:bg-stone-50'}`}
+	            >
+	                <MessageSquare size={14}/> Glossary Prompt
+	            </button>
+	        </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5 bg-stone-50 custom-scrollbar">
-            {mode === 'list' ? (
-                <div className="space-y-4">
+	        {/* Content */}
+	        <div className="flex-1 overflow-y-auto p-5 bg-stone-50 custom-scrollbar">
+	            {mode === 'list' ? (
+	                <div className="space-y-4">
                     {/* Add New Row */}
                     <div className="flex gap-2 items-end bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
                         <div className="flex-1">
@@ -175,9 +183,9 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
                             ))
                         )}
                     </div>
-                </div>
-            ) : (
-                <div className="h-full flex flex-col">
+	                </div>
+	            ) : mode === 'import' ? (
+	                <div className="h-full flex flex-col">
                     <div className="bg-brand-blue/10 border border-brand-blue/20 rounded-lg p-3 mb-4 flex gap-2 text-xs text-brand-blue">
                         <AlertCircle size={16} className="shrink-0 mt-0.5"/>
                         <p className="font-serif">Paste your glossary here. One entry per line. Format: <b>Term, Definition</b> or <b>Term: Definition</b>. Works with copy-paste from Excel.</p>
@@ -195,9 +203,31 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
                     >
                         <FileSpreadsheet size={16}/> Parse and Add
                     </button>
-                </div>
-            )}
-        </div>
+	                </div>
+	            ) : (
+	                <div className="space-y-4">
+	                    <div className="bg-stone-50 border border-stone-200 rounded-lg p-3 text-xs text-stone-600 font-serif leading-relaxed">
+	                        This text is injected alongside matched glossary terms into the <b>effective system prompt</b>.
+	                        Keep it short and non-mandatory if you want the model to adapt to context.
+	                    </div>
+	                    <textarea
+	                        value={prompt}
+	                        onChange={(e) => onUpdatePrompt(e.target.value)}
+	                        className="w-full min-h-[160px] p-4 border border-stone-200 rounded-xl resize-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange outline-none text-sm font-serif bg-white text-stone-800 leading-relaxed"
+	                        placeholder={DEFAULT_GLOSSARY_PROMPT}
+	                    />
+	                    <div className="flex justify-end">
+	                        <button
+	                            onClick={() => onUpdatePrompt(DEFAULT_GLOSSARY_PROMPT)}
+	                            className="px-3 py-2 text-xs font-semibold rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 transition-colors flex items-center gap-2 font-sans"
+	                            title="Reset to default"
+	                        >
+	                            <RotateCcw size={14}/> Reset to default
+	                        </button>
+	                    </div>
+	                </div>
+	            )}
+	        </div>
 
         {/* Footer */}
         <div className="p-5 border-t border-stone-100 flex justify-end gap-3 rounded-b-2xl bg-white font-sans">
