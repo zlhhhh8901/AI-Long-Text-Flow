@@ -1,21 +1,82 @@
 import { GlossaryTerm } from '../types';
 
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+export const normalizeGlossaryKey = (term: string): string =>
+  term.trim().replace(/\s+/g, ' ').toLowerCase();
+
+/**
+ * Merges glossary terms by normalized `term` (case-insensitive, whitespace-normalized).
+ * - Keeps existing `id` when updating an existing term.
+ * - Later definitions overwrite earlier ones for the same term.
+ */
+export const mergeGlossaryTerms = (existing: GlossaryTerm[], incoming: GlossaryTerm[]): GlossaryTerm[] => {
+  const byKey = new Map<string, GlossaryTerm>();
+
+  for (const term of existing) {
+    const key = normalizeGlossaryKey(term.term);
+    if (!key) continue;
+    if (!byKey.has(key)) {
+      byKey.set(key, { ...term, term: term.term.trim(), definition: term.definition.trim() });
+    }
+  }
+
+  for (const term of incoming) {
+    const key = normalizeGlossaryKey(term.term);
+    if (!key) continue;
+
+    const existingEntry = byKey.get(key);
+    if (existingEntry) {
+      byKey.set(key, {
+        ...existingEntry,
+        term: term.term.trim(),
+        definition: term.definition.trim(),
+      });
+    } else {
+      byKey.set(key, { ...term, term: term.term.trim(), definition: term.definition.trim() });
+    }
+  }
+
+  return Array.from(byKey.values());
+};
+
+/**
+ * Checks whether `term` appears in `content`, trying to avoid substring false positives.
+ * - If term starts/ends with ASCII word chars, enforce ASCII "word boundary" on those sides.
+ * - Otherwise, fall back to simple case-insensitive substring match.
+ */
+const termAppearsInContent = (content: string, lowerContent: string, term: string): boolean => {
+  const trimmedTerm = term.trim();
+  if (!trimmedTerm) return false;
+
+  const startsWithWord = /^[A-Za-z0-9_]/.test(trimmedTerm);
+  const endsWithWord = /[A-Za-z0-9_]$/.test(trimmedTerm);
+
+  // Boundary-based match (avoids "AI" matching inside "said")
+  if (startsWithWord || endsWithWord) {
+    const escaped = escapeRegExp(trimmedTerm);
+    const left = startsWithWord ? '(?:^|[^A-Za-z0-9_])' : '';
+    const right = endsWithWord ? '(?:$|[^A-Za-z0-9_])' : '';
+    const regex = new RegExp(`${left}${escaped}${right}`, 'i');
+    return regex.test(content);
+  }
+
+  // Fallback: case-insensitive substring match
+  return lowerContent.includes(trimmedTerm.toLowerCase());
+};
+
 /**
  * Finds all glossary terms that appear in the given text content.
- * Case-insensitive matching.
+ * Case-insensitive matching with basic boundary rules to reduce substring false positives.
  */
 export const findMatchingTerms = (content: string, allTerms: GlossaryTerm[]): GlossaryTerm[] => {
   if (!content || !allTerms || allTerms.length === 0) return [];
 
   const lowerContent = content.toLowerCase();
-  
-  // Sort terms by length (descending) to match longer phrases first if needed, 
-  // though for simple 'includes' check, we just need to filter.
-  // We use a Set to avoid duplicates if multiple terms match the same concept improperly, 
-  // but here we just return all distinct configured terms that appear.
+
   return allTerms.filter(item => {
     if (!item.term.trim()) return false;
-    return lowerContent.includes(item.term.toLowerCase().trim());
+    return termAppearsInContent(content, lowerContent, item.term);
   });
 };
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, Book, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { GlossaryTerm } from '../types';
+import { mergeGlossaryTerms, normalizeGlossaryKey } from '../services/glossaryService';
 
 interface GlossaryModalProps {
   isOpen: boolean;
@@ -19,12 +20,28 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
 
   const handleAdd = () => {
     if (newTerm.trim() && newDef.trim()) {
+      const normalizedKey = normalizeGlossaryKey(newTerm);
+      const existing = terms.find(t => normalizeGlossaryKey(t.term) === normalizedKey);
+
+      if (existing) {
+        onUpdateTerms(
+          terms.map(t =>
+            t.id === existing.id
+              ? { ...t, term: newTerm.trim(), definition: newDef.trim() }
+              : t
+          )
+        );
+        setNewTerm('');
+        setNewDef('');
+        return;
+      }
+
       const newEntry: GlossaryTerm = {
         id: Math.random().toString(36).substr(2, 9),
         term: newTerm.trim(),
         definition: newDef.trim()
       };
-      onUpdateTerms([...terms, newEntry]);
+      onUpdateTerms(mergeGlossaryTerms(terms, [newEntry]));
       setNewTerm('');
       setNewDef('');
     }
@@ -41,10 +58,13 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
     const parsed: GlossaryTerm[] = [];
     
     lines.forEach(line => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) return;
+
         // Supports CSV style: Term, Definition (comma or tab or colon)
-        let parts = line.split('\t');
-        if (parts.length < 2) parts = line.split(':'); // Simple Colon
-        if (parts.length < 2) parts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); // Comma ignoring quotes
+        let parts = trimmedLine.split('\t');
+        if (parts.length < 2) parts = trimmedLine.split(':'); // Simple Colon
+        if (parts.length < 2) parts = trimmedLine.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); // Comma ignoring quotes
 
         if (parts.length >= 2) {
             const term = parts[0].trim().replace(/^"|"$/g, '');
@@ -60,7 +80,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
     });
 
     if (parsed.length > 0) {
-        onUpdateTerms([...terms, ...parsed]);
+        onUpdateTerms(mergeGlossaryTerms(terms, parsed));
         setImportText('');
         setMode('list');
     }

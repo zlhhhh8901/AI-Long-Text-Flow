@@ -7,7 +7,7 @@ import { ResultCard } from './components/ResultCard';
 import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, PromptMode, SplitConfig, GlossaryTerm } from './types';
 import { splitText } from './services/splitterService';
 import { processChunkWithLLM, initializeSession, LLMSession } from './services/llmService';
-import { constructUserMessageWithGlossary } from './services/glossaryService';
+import { constructUserMessageWithGlossary, mergeGlossaryTerms } from './services/glossaryService';
 import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Sparkles, FileText, MessageSquare, Feather } from 'lucide-react';
 
 function App() {
@@ -33,7 +33,14 @@ function App() {
   // Glossary State
   const [glossaryTerms, setGlossaryTerms] = useState<GlossaryTerm[]>(() => {
     const saved = localStorage.getItem('ai-flow-glossary');
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) return [];
+      return mergeGlossaryTerms([], parsed as GlossaryTerm[]);
+    } catch {
+      return [];
+    }
   });
   const [isGlossaryEnabled, setIsGlossaryEnabled] = useState(false);
   const [isGlossaryModalOpen, setIsGlossaryModalOpen] = useState(false);
