@@ -110,7 +110,7 @@ function App() {
 
   // --- Handlers ---
 
-  const handlePaste = async () => {
+  const handleClipboardImport = async () => {
     try {
       const text = await navigator.clipboard.readText();
       if (text) {
@@ -121,6 +121,10 @@ function App() {
     } catch (err) {
       setIsPasteModalOpen(true);
     }
+  };
+
+  const handleOpenManualImport = () => {
+    setIsPasteModalOpen(true);
   };
 
   const handleManualImport = (text: string) => {
@@ -420,7 +424,7 @@ function App() {
             <header className="bg-white border border-stone-200 rounded-xl flex items-center justify-between px-5 py-3 shadow-sm gap-4 transition-all hover:shadow-card min-w-max">
             <div className="flex items-center gap-3 shrink-0">
                 <button 
-                    onClick={handlePaste} 
+                    onClick={handleOpenManualImport}
                     disabled={isProcessing}
                     className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-stone-600 bg-white border border-stone-200 hover:bg-stone-50 hover:text-brand-orange hover:border-brand-orange/30 rounded-lg transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-sans"
                 >
@@ -521,7 +525,7 @@ function App() {
         <div className="flex-1 overflow-y-auto px-6 pb-20 scroll-smooth relative custom-scrollbar">
             {chunks.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-stone-400 animate-fade-in pb-16">
-                    <div className="relative group cursor-pointer" onClick={() => setIsPasteModalOpen(true)}>
+                    <div className="relative group cursor-pointer" onClick={handleClipboardImport}>
                         <div className="absolute inset-0 bg-stone-200/50 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                         <div className="relative w-full max-w-lg border border-dashed border-stone-300 rounded-[2rem] p-12 flex flex-col items-center justify-center bg-white hover:border-brand-orange/40 transition-all duration-300">
                             <div className="w-20 h-20 bg-stone-50 rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 ease-out border border-stone-100">
@@ -532,7 +536,7 @@ function App() {
                                 Drag a document here to find flow,<br/> or simply paste your text.
                             </p>
                             <div className="flex gap-4 font-sans">
-                                <button onClick={(e) => {e.stopPropagation(); handlePaste()}} className="px-6 py-2.5 bg-white border border-stone-200 shadow-sm rounded-lg text-xs font-bold text-stone-600 hover:border-brand-orange hover:text-brand-orange transition-all">
+                                <button onClick={(e) => { e.stopPropagation(); handleOpenManualImport(); }} className="px-6 py-2.5 bg-white border border-stone-200 shadow-sm rounded-lg text-xs font-bold text-stone-600 hover:border-brand-orange hover:text-brand-orange transition-all">
                                     Paste Text
                                 </button>
                                 <label onClick={(e) => e.stopPropagation()} className="px-6 py-2.5 bg-brand-dark text-stone-50 shadow-lg shadow-stone-200 rounded-lg text-xs font-bold hover:bg-black transition-all cursor-pointer flex items-center gap-2">
