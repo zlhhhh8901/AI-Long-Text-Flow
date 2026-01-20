@@ -12,12 +12,14 @@ import {
   Info,
   MessageSquare,
   Book,
+  Bookmark,
   Sparkles
 } from 'lucide-react';
 
 interface SidebarProps {
   splitConfig: SplitConfig;
   setSplitConfig: (config: SplitConfig) => void;
+  onOpenSplitRuleAssistant: () => void;
   isParallel: boolean;
   setIsParallel: (val: boolean) => void;
   concurrencyLimit: number;
@@ -36,6 +38,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   splitConfig,
   setSplitConfig,
+  onOpenSplitRuleAssistant,
   isParallel,
   setIsParallel,
   concurrencyLimit,
@@ -126,17 +129,97 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
 
               {splitConfig.mode === SplitMode.CUSTOM && (
-                <div className="animate-fade-in group">
-                  <label className="flex justify-between text-[11px] font-medium text-stone-500 mb-2 group-focus-within:text-brand-orange transition-colors">
-                    Separator <span className="text-stone-300">Regex supported</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={splitConfig.customSeparator}
-                    onChange={(e) => setSplitConfig({ ...splitConfig, customSeparator: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif placeholder:text-stone-300"
-                    placeholder="###"
-                  />
+                <div className="animate-fade-in space-y-3">
+                  <div className="bg-stone-200/50 p-1 rounded-xl grid grid-cols-2 gap-1">
+                    {[
+                      { val: 'text' as const, label: 'Text Rule' },
+                      { val: 'heading' as const, label: 'Headings' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        onClick={() => setSplitConfig({ ...splitConfig, customRuleType: opt.val })}
+                        className={`flex items-center justify-center py-2 rounded-lg text-[10px] font-semibold transition-all duration-300 ${
+                          splitConfig.customRuleType === opt.val
+                            ? 'bg-white text-brand-orange shadow-sm ring-1 ring-stone-200'
+                            : 'text-stone-500 hover:text-stone-800 hover:bg-stone-200'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {splitConfig.customRuleType === 'heading' ? (
+                    <div className="group">
+                      <label className="flex justify-between text-[11px] font-medium text-stone-500 mb-2 group-focus-within:text-brand-orange transition-colors">
+                        Heading Level <span className="text-stone-300">line-start</span>
+                      </label>
+                      <select
+                        value={splitConfig.customHeadingLevel}
+                        onChange={(e) =>
+                          setSplitConfig({
+                            ...splitConfig,
+                            customHeadingLevel: Number(e.target.value) as 1 | 2 | 3 | 4 | 5 | 6,
+                          })
+                        }
+                        className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif"
+                      >
+                        {[1, 2, 3, 4, 5, 6].map((n) => (
+                          <option key={n} value={n}>
+                            H{n} (^{`${'#'.repeat(n)}`})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="group">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="flex justify-between text-[11px] font-medium text-stone-500 group-focus-within:text-brand-orange transition-colors">
+                            Rule <span className="text-stone-300">markers / /regex/</span>
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <div className="group/keep relative flex items-center">
+                              <button
+                                onClick={() =>
+                                  setSplitConfig({ ...splitConfig, customKeepSeparator: !splitConfig.customKeepSeparator })
+                                }
+                                className={`p-1.5 rounded-md transition-colors ${
+                                  splitConfig.customKeepSeparator
+                                    ? 'text-brand-orange bg-brand-orange/10'
+                                    : 'text-stone-300 hover:text-stone-500 hover:bg-stone-100'
+                                }`}
+                                type="button"
+                                aria-pressed={splitConfig.customKeepSeparator}
+                                title="Keep marker"
+                              >
+                                <Bookmark size={14} />
+                              </button>
+                              <div className="absolute right-0 bottom-full mb-1.5 w-56 p-3 bg-brand-dark text-stone-50 text-[10px] leading-relaxed rounded-lg shadow-xl opacity-0 group-hover/keep:opacity-100 pointer-events-none transition-all z-50 font-serif">
+                                Keep marker: if enabled, the matched marker stays at the start of the next chunk.
+                              </div>
+                            </div>
+                            <button
+                              onClick={onOpenSplitRuleAssistant}
+                              className="text-[10px] font-semibold text-stone-500 hover:text-brand-orange hover:bg-brand-orange/10 px-2 py-1 rounded-md transition-colors flex items-center gap-1 font-sans"
+                              title="AI generate + preview with sample text"
+                              type="button"
+                            >
+                              <MessageSquare size={12} className="opacity-70" />
+                              Assist
+                            </button>
+                          </div>
+                        </div>
+                        <input
+                          type="text"
+                          value={splitConfig.customSeparator}
+                          onChange={(e) => setSplitConfig({ ...splitConfig, customSeparator: e.target.value })}
+                          className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif placeholder:text-stone-300"
+                          placeholder="Part*  or  /Part\\s\\w+/i"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
               

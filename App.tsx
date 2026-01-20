@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { PasteModal } from './components/PasteModal';
 import { GlossaryModal } from './components/GlossaryModal';
+import { SplitRuleModal } from './components/SplitRuleModal';
 import { ResultCard } from './components/ResultCard';
 import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, SplitConfig, GlossaryTerm } from './types';
 import { splitText } from './services/splitterService';
@@ -56,6 +57,7 @@ function App() {
   });
   const [isGlossaryEnabled, setIsGlossaryEnabled] = useState(false);
   const [isGlossaryModalOpen, setIsGlossaryModalOpen] = useState(false);
+  const [isSplitRuleModalOpen, setIsSplitRuleModalOpen] = useState(false);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -400,14 +402,15 @@ function App() {
         </div>
       )}
 
-	      <Sidebar 
-	        splitConfig={splitConfig}
-	        setSplitConfig={setSplitConfig}
-	        isParallel={isParallel}
-	        setIsParallel={setIsParallel}
-	        concurrencyLimit={concurrencyLimit}
-	        setConcurrencyLimit={setConcurrencyLimit}
-	        isContextual={isContextual}
+		      <Sidebar 
+		        splitConfig={splitConfig}
+		        setSplitConfig={setSplitConfig}
+            onOpenSplitRuleAssistant={() => setIsSplitRuleModalOpen(true)}
+		        isParallel={isParallel}
+		        setIsParallel={setIsParallel}
+		        concurrencyLimit={concurrencyLimit}
+		        setConcurrencyLimit={setConcurrencyLimit}
+		        isContextual={isContextual}
 	        setIsContextual={setIsContextual}
 	        systemPrompt={appConfig.systemPrompt}
 	        setSystemPrompt={setSystemPrompt}
@@ -416,10 +419,18 @@ function App() {
 	        glossaryTerms={glossaryTerms}
 	        isGlossaryEnabled={isGlossaryEnabled}
         setIsGlossaryEnabled={setIsGlossaryEnabled}
-        onOpenGlossary={() => setIsGlossaryModalOpen(true)}
-      />
+	        onOpenGlossary={() => setIsGlossaryModalOpen(true)}
+	      />
 
-      <main className="flex-1 flex flex-col h-full min-w-0 z-10 relative">
+        <SplitRuleModal
+          isOpen={isSplitRuleModalOpen}
+          onClose={() => setIsSplitRuleModalOpen(false)}
+          appConfig={appConfig}
+          splitConfig={splitConfig}
+          onApply={setSplitConfig}
+        />
+
+	      <main className="flex-1 flex flex-col h-full min-w-0 z-10 relative">
         {/* Floating Toolbar */}
         <div className="px-6 py-4 shrink-0 overflow-x-auto custom-scrollbar">
             <header className="bg-white border border-stone-200 rounded-xl flex items-center justify-between px-5 py-3 shadow-sm gap-4 transition-all hover:shadow-card min-w-max">

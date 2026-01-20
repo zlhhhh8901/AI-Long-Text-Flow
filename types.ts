@@ -4,6 +4,8 @@ export enum SplitMode {
   CUSTOM = 'custom',
 }
 
+export type CustomSplitRuleType = 'text' | 'heading';
+
 export enum ProcessingStatus {
   IDLE = 'idle',
   WAITING = 'waiting',
@@ -43,7 +45,17 @@ export interface SplitConfig {
   mode: SplitMode;
   chunkSize: number; // For character mode
   lineCount: number; // For line mode
-  customSeparator: string; // For custom mode
+  // --- Custom mode ---
+  customRuleType: CustomSplitRuleType;
+  // Text-rule input. Supports:
+  // - Plain markers with * and ? wildcards (escape with \* and \?)
+  // - Native regex literal syntax: /pattern/flags
+  customSeparator: string;
+  // If true, keep the matched marker and attach it to the start of the next chunk.
+  // (Heading mode always keeps and ignores this.)
+  customKeepSeparator: boolean;
+  // Heading level to split on (1..6). Matches only line-start headings, e.g. ^## (not ^###).
+  customHeadingLevel: 1 | 2 | 3 | 4 | 5 | 6;
   batchSize: number; // How many chunks to combine per request
 }
 
@@ -61,6 +73,9 @@ export const DEFAULT_SPLIT_CONFIG: SplitConfig = {
   mode: SplitMode.CHARACTER,
   chunkSize: 2000,
   lineCount: 10,
+  customRuleType: 'text',
   customSeparator: '###',
+  customKeepSeparator: true,
+  customHeadingLevel: 2,
   batchSize: 1,
 };

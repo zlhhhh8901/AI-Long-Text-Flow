@@ -6,6 +6,115 @@ const escapeRegExp = (string: string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
+const globToRegExpSource = (pattern: string) => {
+  let out = '';
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+    if (ch === '\\') {
+      const next = pattern[i + 1];
+      if (typeof next === 'string') {
+        out += escapeRegExp(next);
+        i++;
+      } else {
+        out += '\\\\';
+      }
+      continue;
+    }
+    if (ch === '*') {
+      out += '[\\s\\S]*?';
+      continue;
+    }
+    if (ch === '?') {
+      out += '[\\s\\S]';
+      continue;
+    }
+    out += escapeRegExp(ch);
+  }
+  return out;
+};
+
+const parseRegexLiteral = (input: string): { body: string; flags: string } | null => {
+  if (!input.startsWith('/')) return null;
+
+  let escaped = false;
+  let inCharClass = false;
+  let closingSlashIndex = -1;
+
+  for (let i = 1; i < input.length; i++) {
+    const ch = input[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch === '[') {
+      inCharClass = true;
+      continue;
+    }
+    if (ch === ']') {
+      inCharClass = false;
+      continue;
+    }
+    if (ch === '/' && !inCharClass) {
+      closingSlashIndex = i;
+      break;
+    }
+  }
+
+  if (closingSlashIndex <= 0) return null;
+
+  const body = input.slice(1, closingSlashIndex);
+  const flags = input.slice(closingSlashIndex + 1);
+  return { body, flags };
+};
+
+const normalizeGlobalFlags = (flags: string) => {
+  // Ensure global matching for iterative splitting; remove sticky flag.
+  const cleaned = flags.replace(/y/g, '');
+  return cleaned.includes('g') ? cleaned : `${cleaned}g`;
+};
+
+const splitByRegexKeepMatch = (text: string, regex: RegExp): string[] => {
+  const r = regex.global ? regex : new RegExp(regex.source, `${regex.flags}g`);
+  const chunks: string[] = [];
+  let cursor = 0;
+
+  for (const match of text.matchAll(r)) {
+    const index = match.index ?? -1;
+    if (index < 0) continue;
+    chunks.push(text.slice(cursor, index));
+    cursor = index;
+    if (match[0].length === 0) {
+      r.lastIndex = Math.min(text.length, (r.lastIndex || 0) + 1);
+    }
+  }
+
+  chunks.push(text.slice(cursor));
+  return chunks;
+};
+
+const splitByRegexDiscardMatch = (text: string, regex: RegExp): string[] => {
+  const r = regex.global ? regex : new RegExp(regex.source, `${regex.flags}g`);
+  const chunks: string[] = [];
+  let cursor = 0;
+
+  for (const match of text.matchAll(r)) {
+    const index = match.index ?? -1;
+    if (index < 0) continue;
+    chunks.push(text.slice(cursor, index));
+    cursor = index + match[0].length;
+    if (match[0].length === 0) {
+      r.lastIndex = Math.min(text.length, (r.lastIndex || 0) + 1);
+    }
+  }
+
+  chunks.push(text.slice(cursor));
+  return chunks;
+};
+
 export const splitText = (text: string, config: SplitConfig): ChunkItem[] => {
   let rawChunks: string[] = [];
 
@@ -44,29 +153,29 @@ export const splitText = (text: string, config: SplitConfig): ChunkItem[] => {
     }
     case SplitMode.CUSTOM: {
       try {
-        const sep = config.customSeparator;
-        let regex: RegExp;
+        const ruleType = config.customRuleType ?? 'text';
 
-        // Check if it looks like a regex literal: /pattern/flags
-        // We look for the first and last slash to extract body and flags
-        const firstSlash = sep.indexOf('/');
-        const lastSlash = sep.lastIndexOf('/');
-
-        if (firstSlash === 0 && lastSlash > 0 && lastSlash > firstSlash) {
-            // It is a regex provided by user, e.g. /Chapter \d+/i
-            const body = sep.substring(firstSlash + 1, lastSlash);
-            const flags = sep.substring(lastSlash + 1);
-            
-            // Use Lookahead (?=...) to split *before* the match.
-            // This ensures the match itself is kept and attached to the start of the following chunk.
-            regex = new RegExp(`(?=${body})`, flags);
-        } else {
-            // String literal
-            // Escape special chars and wrap in lookahead
-            regex = new RegExp(`(?=${escapeRegExp(sep)})`);
+        if (ruleType === 'heading') {
+          const level = config.customHeadingLevel ?? 2;
+          const headingRegex = new RegExp(`^#{${level}}(?!#)`, 'gm');
+          rawChunks = splitByRegexKeepMatch(text, headingRegex);
+          break;
         }
-        
-        rawChunks = text.split(regex);
+
+        const sep = config.customSeparator ?? '';
+        const keep = config.customKeepSeparator ?? true;
+
+        const parsed = parseRegexLiteral(sep);
+        let regex: RegExp;
+        if (parsed) {
+          const flags = normalizeGlobalFlags(parsed.flags);
+          regex = new RegExp(parsed.body, flags);
+        } else {
+          const source = globToRegExpSource(sep);
+          regex = new RegExp(source, 'g');
+        }
+
+        rawChunks = keep ? splitByRegexKeepMatch(text, regex) : splitByRegexDiscardMatch(text, regex);
       } catch (e) {
         console.error("Split error", e);
         rawChunks = [text];
