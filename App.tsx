@@ -8,7 +8,7 @@ import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingS
 import { splitText } from './services/splitterService';
 import { processChunkWithLLM, initializeSession, LLMSession } from './services/llmService';
 import { buildEffectiveSystemPrompt, DEFAULT_GLOSSARY_PROMPT, findMatchingTerms, formatGlossarySection, mergeGlossaryTerms } from './services/glossaryService';
-import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, Sparkles, FileText, MessageSquare, Feather } from 'lucide-react';
+import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, FileText, MessageSquare, Feather, RefreshCw } from 'lucide-react';
 
 function App() {
   // --- State ---
@@ -58,18 +58,17 @@ function App() {
   const [isGlossaryModalOpen, setIsGlossaryModalOpen] = useState(false);
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeRequestCount, setActiveRequestCount] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   
   // Refs for Queue Management
-  const activeRequestsRef = useRef(0);
   const isProcessingRef = useRef(false);
   const sessionRef = useRef<LLMSession | undefined>(undefined);
   const haltedOnErrorRef = useRef(false);
   const retryErrorsOnlyRef = useRef(false);
+  const startedRequestsRef = useRef<Set<string>>(new Set());
   
   useEffect(() => {
     isProcessingRef.current = isProcessing;
@@ -175,11 +174,10 @@ function App() {
     setSourceText('');
     setChunks([]);
     setGlobalError(null);
-    activeRequestsRef.current = 0;
-    setActiveRequestCount(0);
     sessionRef.current = undefined;
     haltedOnErrorRef.current = false;
     retryErrorsOnlyRef.current = false;
+    startedRequestsRef.current.clear();
   };
 
   const handleExport = (includeInput: boolean) => {
@@ -213,137 +211,139 @@ function App() {
     ));
   }, []);
 
-  const processQueue = useCallback(async () => {
+  const processQueue = useCallback(async (currentChunks: ChunkItem[]) => {
     if (!isProcessingRef.current) return;
 
-    setChunks(currentChunks => {
-        if (haltedOnErrorRef.current) {
-            // Do not schedule new work while halted on an error.
-            if (activeRequestsRef.current === 0) {
-                setTimeout(() => setIsProcessing(false), 0);
-            }
-            return currentChunks;
-        }
+    if (haltedOnErrorRef.current) {
+      if (startedRequestsRef.current.size === 0) {
+        setTimeout(() => setIsProcessing(false), 0);
+      }
+      return;
+    }
 
-        const processingCount = activeRequestsRef.current;
-        const limit = isParallel ? concurrencyLimit : 1;
-        
-        if (processingCount >= limit) return currentChunks;
+    const processingCount = currentChunks.filter(c => c.status === ProcessingStatus.PROCESSING).length;
+    const limit = isParallel ? concurrencyLimit : 1;
+    if (processingCount >= limit) return;
 
-        // Initialize Session if Contextual Mode and not initialized
-        if (!isParallel && isContextual && !sessionRef.current) {
-            try {
-                const matches = isGlossaryEnabled ? findMatchingTerms(sourceText, glossaryTerms) : [];
-                const glossarySection = isGlossaryEnabled ? formatGlossarySection(matches, glossaryPrompt) : '';
-                const effectiveSystemPrompt = buildEffectiveSystemPrompt(appConfig.systemPrompt, glossarySection);
-                const sessionConfig: AppConfig = { ...appConfig, systemPrompt: effectiveSystemPrompt };
-                sessionRef.current = initializeSession(sessionConfig);
-            } catch (e: any) {
-                console.error("Failed to init session", e);
-                setGlobalError(e?.message || String(e));
-                haltedOnErrorRef.current = true;
-                setIsProcessing(false);
-                return currentChunks;
-            }
-        }
+    // Initialize Session if Contextual Mode and not initialized
+    if (!isParallel && isContextual && !sessionRef.current) {
+      try {
+        const matches = isGlossaryEnabled ? findMatchingTerms(sourceText, glossaryTerms) : [];
+        const glossarySection = isGlossaryEnabled ? formatGlossarySection(matches, glossaryPrompt) : '';
+        const effectiveSystemPrompt = buildEffectiveSystemPrompt(appConfig.systemPrompt, glossarySection);
+        const sessionConfig: AppConfig = { ...appConfig, systemPrompt: effectiveSystemPrompt };
+        sessionRef.current = initializeSession(sessionConfig);
+      } catch (e: any) {
+        console.error("Failed to init session", e);
+        setGlobalError(e?.message || String(e));
+        haltedOnErrorRef.current = true;
+        setIsProcessing(false);
+        return;
+      }
+    }
 
-        let candidates = [...currentChunks];
-        let toTrigger: ChunkItem[] = [];
-        const hasErrors = candidates.some(c => c.status === ProcessingStatus.ERROR);
+    const candidates = [...currentChunks];
+    const hasErrors = candidates.some(c => c.status === ProcessingStatus.ERROR);
+    let toTrigger: ChunkItem[] = [];
 
-        if (hasErrors) {
-            if (isParallel) {
-                const availableSlots = limit - processingCount;
-                toTrigger = candidates
-                    .filter(c => c.status === ProcessingStatus.ERROR)
-                    .slice(0, availableSlots);
-            } else {
-                const firstError = candidates.find(c => c.status === ProcessingStatus.ERROR);
-                if (firstError) toTrigger = [firstError];
-            }
-        } else if (isParallel) {
-            const availableSlots = limit - processingCount;
-            toTrigger = candidates
-                .filter(c => c.status === ProcessingStatus.IDLE || c.status === ProcessingStatus.WAITING)
-                .slice(0, availableSlots);
-        } else {
-            // Serial: Find first incomplete
-            const firstIncomplete = candidates.find(c => c.status !== ProcessingStatus.SUCCESS && c.status !== ProcessingStatus.ERROR);
-            if (firstIncomplete && (firstIncomplete.status === ProcessingStatus.IDLE || firstIncomplete.status === ProcessingStatus.WAITING)) {
-                toTrigger = [firstIncomplete];
-            }
-        }
+    if (hasErrors) {
+      if (isParallel) {
+        const availableSlots = limit - processingCount;
+        toTrigger = candidates
+          .filter(c => c.status === ProcessingStatus.ERROR)
+          .slice(0, availableSlots);
+      } else {
+        const firstError = candidates.find(c => c.status === ProcessingStatus.ERROR);
+        if (firstError) toTrigger = [firstError];
+      }
+    } else if (isParallel) {
+      const availableSlots = limit - processingCount;
+      toTrigger = candidates
+        .filter(c => c.status === ProcessingStatus.IDLE || c.status === ProcessingStatus.WAITING)
+        .slice(0, availableSlots);
+    } else {
+      const firstIncomplete = candidates.find(c => c.status !== ProcessingStatus.SUCCESS && c.status !== ProcessingStatus.ERROR);
+      if (firstIncomplete && (firstIncomplete.status === ProcessingStatus.IDLE || firstIncomplete.status === ProcessingStatus.WAITING)) {
+        toTrigger = [firstIncomplete];
+      }
+    }
 
-        if (toTrigger.length === 0) {
-             const allDone = candidates.every(c => c.status === ProcessingStatus.SUCCESS || c.status === ProcessingStatus.ERROR);
-             if (allDone && processingCount === 0) {
-                 setTimeout(() => setIsProcessing(false), 0); 
-             }
-             // If we started a "retry errors only" run in parallel mode, stop once errors are resolved.
-             if (!hasErrors && isParallel && retryErrorsOnlyRef.current && processingCount === 0) {
-                 setTimeout(() => setIsProcessing(false), 0);
-             }
-             return currentChunks;
-        }
+    if (toTrigger.length === 0) {
+      const allDone = candidates.every(c => c.status === ProcessingStatus.SUCCESS || c.status === ProcessingStatus.ERROR);
+      if (allDone && processingCount === 0) {
+        setTimeout(() => setIsProcessing(false), 0);
+      }
+      if (!hasErrors && isParallel && retryErrorsOnlyRef.current && processingCount === 0) {
+        setTimeout(() => setIsProcessing(false), 0);
+      }
+      return;
+    }
 
-	        const idsToTrigger = new Set(toTrigger.map(c => c.id));
-	        const newChunks = candidates.map(c => 
-	            idsToTrigger.has(c.id) ? { ...c, status: ProcessingStatus.PROCESSING } : c
-	        );
-	        
-	        toTrigger.forEach(chunk => {
-	            activeRequestsRef.current++;
-	            setActiveRequestCount(activeRequestsRef.current);
-
-                const finalUserMessage = chunk.rawContent;
-
-                const activeSession = (!isParallel && isContextual) ? sessionRef.current : undefined;
-
-                const chunkMatches = (!activeSession && isGlossaryEnabled) ? findMatchingTerms(chunk.rawContent, glossaryTerms) : [];
-                const glossarySection = (!activeSession && isGlossaryEnabled) ? formatGlossarySection(chunkMatches, glossaryPrompt) : '';
-                const effectiveSystemPrompt = buildEffectiveSystemPrompt(appConfig.systemPrompt, glossarySection);
-                const requestConfig: AppConfig = activeSession ? appConfig : { ...appConfig, systemPrompt: effectiveSystemPrompt };
-
-                processChunkWithLLM(finalUserMessage, requestConfig, activeSession)
-                    .then(result => {
-                        updateChunkStatus(chunk.id, ProcessingStatus.SUCCESS, result);
-                    })
-                .catch(err => {
-                    updateChunkStatus(chunk.id, ProcessingStatus.ERROR, undefined, err.message);
-                    haltedOnErrorRef.current = true;
-                })
-                .finally(() => {
-                    activeRequestsRef.current--;
-                    setActiveRequestCount(activeRequestsRef.current);
-                    if (haltedOnErrorRef.current) {
-                        if (activeRequestsRef.current === 0) {
-                            setIsProcessing(false);
-                        }
-                        return;
-                    }
-                    processQueue();
-	        });
-        });
-
-        return newChunks;
-    });
-		  }, [appConfig, isParallel, concurrencyLimit, updateChunkStatus, isContextual, glossaryTerms, isGlossaryEnabled, glossaryPrompt, sourceText]);
+    const idsToTrigger = new Set(toTrigger.map(c => c.id));
+    setChunks(prev => prev.map(c => (idsToTrigger.has(c.id) ? { ...c, status: ProcessingStatus.PROCESSING } : c)));
+ 		  }, [appConfig, isParallel, concurrencyLimit, isContextual, glossaryTerms, isGlossaryEnabled, glossaryPrompt, sourceText]);
 
   useEffect(() => {
     if (isProcessing) {
-        processQueue();
+        processQueue(chunks);
     }
   }, [isProcessing, chunks, processQueue]);
+
+  useEffect(() => {
+    const toStart = chunks.filter(c => c.status === ProcessingStatus.PROCESSING && !startedRequestsRef.current.has(c.id));
+    if (toStart.length === 0) return;
+
+    toStart.forEach(chunk => {
+      startedRequestsRef.current.add(chunk.id);
+
+      const finalUserMessage = chunk.rawContent;
+      const activeSession = (!isParallel && isContextual) ? sessionRef.current : undefined;
+
+      const chunkMatches = (!activeSession && isGlossaryEnabled) ? findMatchingTerms(chunk.rawContent, glossaryTerms) : [];
+      const glossarySection = (!activeSession && isGlossaryEnabled) ? formatGlossarySection(chunkMatches, glossaryPrompt) : '';
+      const effectiveSystemPrompt = buildEffectiveSystemPrompt(appConfig.systemPrompt, glossarySection);
+      const requestConfig: AppConfig = activeSession ? appConfig : { ...appConfig, systemPrompt: effectiveSystemPrompt };
+
+      processChunkWithLLM(finalUserMessage, requestConfig, activeSession)
+        .then(result => {
+          updateChunkStatus(chunk.id, ProcessingStatus.SUCCESS, result);
+        })
+        .catch(err => {
+          updateChunkStatus(chunk.id, ProcessingStatus.ERROR, undefined, err.message);
+          haltedOnErrorRef.current = true;
+        })
+        .finally(() => {
+          startedRequestsRef.current.delete(chunk.id);
+
+          if (haltedOnErrorRef.current) {
+            if (startedRequestsRef.current.size === 0) {
+              setIsProcessing(false);
+            }
+            return;
+          }
+        });
+    });
+  }, [appConfig, chunks, glossaryPrompt, glossaryTerms, isContextual, isGlossaryEnabled, isParallel, updateChunkStatus]);
 
 	  const handleRetry = (id: string) => {
 	    haltedOnErrorRef.current = false;
 	    retryErrorsOnlyRef.current = false;
 	    setGlobalError(null);
-	    setChunks(prev => prev.map(c => (c.id === id ? { ...c, status: ProcessingStatus.IDLE } : c)));
+	    setChunks(prev => prev.map(c => (c.id === id ? { ...c, status: ProcessingStatus.IDLE, errorMsg: undefined } : c)));
 	    if (!isProcessing) {
 	        setIsProcessing(true);
 	    }
 	  };
+
+      const handleResetResults = () => {
+        haltedOnErrorRef.current = false;
+        retryErrorsOnlyRef.current = false;
+        startedRequestsRef.current.clear();
+        sessionRef.current = undefined;
+        setGlobalError(null);
+        setIsProcessing(false);
+        setChunks(prev => prev.map(c => ({ ...c, status: ProcessingStatus.IDLE, result: undefined, errorMsg: undefined })));
+      };
 
       const handleStartPause = () => {
         if (isProcessing) {
@@ -373,6 +373,7 @@ function App() {
 	  const completedCount = chunks.filter(c => c.status === ProcessingStatus.SUCCESS).length;
 	  const totalCount = chunks.length;
 	  const progress = totalCount === 0 ? 0 : (completedCount / totalCount) * 100;
+      const isAllSuccess = totalCount > 0 && chunks.every(c => c.status === ProcessingStatus.SUCCESS);
 
   return (
     <div 
@@ -503,7 +504,7 @@ function App() {
                 <div className="h-8 w-px bg-stone-200 mx-1"></div>
 
                 <button 
-                    onClick={handleStartPause}
+                    onClick={isAllSuccess && !isProcessing ? handleResetResults : handleStartPause}
                     disabled={chunks.length === 0}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold shadow-md transition-all transform hover:-translate-y-0.5 active:translate-y-0 font-sans ${
                         isProcessing 
@@ -511,7 +512,19 @@ function App() {
                         : 'bg-brand-orange text-white hover:bg-brand-orange/90 shadow-brand-orange/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:translate-y-0'
                     }`}
                 >
-                    {isProcessing ? <><Pause size={16} fill="currentColor"/> <span className="hidden md:inline">Pause</span></> : <><Play size={16} fill="currentColor"/> <span className="hidden md:inline">Start Flow</span></>}
+                    {isProcessing ? (
+                      <>
+                        <Pause size={16} fill="currentColor" /> <span className="hidden md:inline">Pause</span>
+                      </>
+                    ) : isAllSuccess ? (
+                      <>
+                        <RefreshCw size={16} /> <span className="hidden md:inline">Clear Results</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play size={16} fill="currentColor" /> <span className="hidden md:inline">Start Flow</span>
+                      </>
+                    )}
                 </button>
 
                 <button onClick={() => setIsSettingsOpen(true)} className="p-2.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors">
