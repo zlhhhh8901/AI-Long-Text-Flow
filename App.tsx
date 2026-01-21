@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Sidebar } from './components/Sidebar';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { PasteModal } from './components/PasteModal';
@@ -64,6 +65,10 @@ function App() {
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+
+  const toolbarScrollRef = useRef<HTMLDivElement | null>(null);
+  const exportButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [exportMenuPosition, setExportMenuPosition] = useState<{ top: number; left: number } | null>(null);
   
   // Refs for Queue Management
   const isProcessingRef = useRef(false);
@@ -75,6 +80,46 @@ function App() {
   useEffect(() => {
     isProcessingRef.current = isProcessing;
   }, [isProcessing]);
+
+  const updateExportMenuPosition = useCallback(() => {
+    const button = exportButtonRef.current;
+    if (!button) return;
+
+    const rect = button.getBoundingClientRect();
+    const menuWidth = 192; // Tailwind w-48
+    const gap = 12; // Tailwind mt-3
+    const viewportPadding = 8;
+
+    const top = rect.bottom + gap;
+    let left = rect.right - menuWidth;
+    left = Math.max(viewportPadding, Math.min(left, window.innerWidth - menuWidth - viewportPadding));
+
+    setExportMenuPosition({ top, left });
+  }, []);
+
+  useEffect(() => {
+    if (!isExportMenuOpen) {
+      setExportMenuPosition(null);
+      return;
+    }
+
+    updateExportMenuPosition();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsExportMenuOpen(false);
+    };
+
+    const scroller = toolbarScrollRef.current;
+    window.addEventListener('resize', updateExportMenuPosition);
+    document.addEventListener('keydown', onKeyDown);
+    scroller?.addEventListener('scroll', updateExportMenuPosition, { passive: true });
+
+    return () => {
+      window.removeEventListener('resize', updateExportMenuPosition);
+      document.removeEventListener('keydown', onKeyDown);
+      scroller?.removeEventListener('scroll', updateExportMenuPosition);
+    };
+  }, [isExportMenuOpen, updateExportMenuPosition]);
 
   // Re-split when source text or config changes
   useEffect(() => {
@@ -432,7 +477,7 @@ function App() {
 
 	      <main className="flex-1 flex flex-col h-full min-w-0 z-10 relative">
         {/* Floating Toolbar */}
-        <div className="px-6 py-4 shrink-0 overflow-x-auto custom-scrollbar">
+        <div className="px-6 py-4 shrink-0 overflow-x-auto custom-scrollbar" ref={toolbarScrollRef}>
             <header className="bg-white border border-stone-200 rounded-xl flex items-center justify-between px-5 py-3 shadow-sm gap-4 transition-all hover:shadow-card min-w-max">
             <div className="flex items-center gap-3 shrink-0">
                 <button 
@@ -480,33 +525,10 @@ function App() {
                                     onClick={() => setIsExportMenuOpen(!isExportMenuOpen)} 
                                     className={`p-2 rounded-lg transition-all ${isExportMenuOpen ? 'bg-brand-orange/10 text-brand-orange' : 'text-stone-400 hover:text-brand-orange bg-stone-50 hover:bg-white'}`} 
                                     title="Export Options"
+                                    ref={exportButtonRef}
                                 >
                                     <Download size={18} />
                                 </button>
-                                
-                                {isExportMenuOpen && (
-                                    <>
-                                        <div className="fixed inset-0 z-10" onClick={() => setIsExportMenuOpen(false)}></div>
-                                        <div className="absolute right-0 top-full mt-3 w-48 bg-white rounded-lg shadow-xl border border-stone-200 z-20 animate-fade-in overflow-hidden">
-                                            <div className="px-4 py-2.5 text-[9px] font-bold text-stone-400 uppercase tracking-wider bg-stone-50 border-b border-stone-100 font-sans">
-                                                Download
-                                            </div>
-                                            <button 
-                                                onClick={() => handleExport(false)}
-                                                className="w-full text-left px-4 py-3 text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-brand-orange transition-colors flex items-center gap-2 font-sans"
-                                            >
-                                                <FileText size={14} /> Results Only
-                                            </button>
-                                            <div className="h-px bg-stone-50"></div>
-                                            <button 
-                                                onClick={() => handleExport(true)}
-                                                className="w-full text-left px-4 py-3 text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-brand-orange transition-colors flex items-center gap-2 font-sans"
-                                            >
-                                                <MessageSquare size={14} /> Source & Results
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
                             </div>
                         )}
                     </div>
@@ -544,6 +566,36 @@ function App() {
             </div>
             </header>
         </div>
+
+        {isExportMenuOpen &&
+          exportMenuPosition &&
+          createPortal(
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setIsExportMenuOpen(false)} />
+              <div
+                className="fixed w-48 bg-white rounded-lg shadow-xl border border-stone-200 z-40 animate-fade-in overflow-hidden"
+                style={{ top: exportMenuPosition.top, left: exportMenuPosition.left }}
+              >
+                <div className="px-4 py-2.5 text-[9px] font-bold text-stone-400 uppercase tracking-wider bg-stone-50 border-b border-stone-100 font-sans">
+                  Download
+                </div>
+                <button
+                  onClick={() => handleExport(false)}
+                  className="w-full text-left px-4 py-3 text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-brand-orange transition-colors flex items-center gap-2 font-sans"
+                >
+                  <FileText size={14} /> Results Only
+                </button>
+                <div className="h-px bg-stone-50"></div>
+                <button
+                  onClick={() => handleExport(true)}
+                  className="w-full text-left px-4 py-3 text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-brand-orange transition-colors flex items-center gap-2 font-sans"
+                >
+                  <MessageSquare size={14} /> Source & Results
+                </button>
+              </div>
+            </>,
+            document.body
+          )}
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-6 pb-20 scroll-smooth relative custom-scrollbar">
