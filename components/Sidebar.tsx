@@ -13,7 +13,8 @@ import {
   MessageSquare,
   Book,
   Bookmark,
-  Sparkles
+  Sparkles,
+  Github
 } from 'lucide-react';
 import { useTranslation } from '../locales';
 
@@ -367,8 +368,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </section>
       </div>
 
-      <div className="px-6 py-4 bg-stone-50 border-t border-stone-200 text-center shrink-0">
-        <p className="text-xs font-medium text-stone-400 tracking-wide font-sans">{t('sidebar.privacyFooter')}</p>
+      <div className="px-6 py-3 bg-stone-50 border-t border-stone-200 text-center shrink-0">
+        <p className="text-xs font-medium text-stone-400 tracking-wide font-sans flex items-center justify-center gap-2">
+          <a
+            href="https://github.com/zlhhhh8901/AI-Long-Text-Flow"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-stone-400 hover:text-brand-orange transition-colors"
+            title="View on GitHub"
+          >
+            <Github size={18} />
+          </a>
+          {t('sidebar.privacyFooter')}
+        </p>
       </div>
     </div>
   );

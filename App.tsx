@@ -10,7 +10,7 @@ import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingS
 import { splitText } from './services/splitterService';
 import { processChunkWithLLM, initializeSession, LLMSession } from './services/llmService';
 import { buildEffectiveSystemPrompt, DEFAULT_GLOSSARY_PROMPT, findMatchingTerms, formatGlossarySection, mergeGlossaryTerms } from './services/glossaryService';
-import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, FileText, MessageSquare, Feather, RefreshCw } from 'lucide-react';
+import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, FileText, MessageSquare, Feather, RefreshCw, Github } from 'lucide-react';
 import { TranslationProvider } from './locales';
 
 function App() {
