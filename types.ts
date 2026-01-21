@@ -16,6 +16,8 @@ export enum ProcessingStatus {
 
 export type ModelProvider = 'openai' | 'gemini';
 
+export type Language = 'en' | 'zh';
+
 export interface ChunkItem {
   id: string;
   index: number;
@@ -39,6 +41,7 @@ export interface AppConfig {
   temperature: number;
   systemPrompt: string;
   concurrencyLimit: number;
+  language: Language;
 }
 
 export interface SplitConfig {
@@ -67,6 +70,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   temperature: 0.7,
   systemPrompt: '',
   concurrencyLimit: 3,
+  language: 'en',
 };
 
 export const DEFAULT_SPLIT_CONFIG: SplitConfig = {

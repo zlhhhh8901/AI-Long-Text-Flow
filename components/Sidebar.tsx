@@ -1,20 +1,21 @@
 import React from 'react';
 import { SplitConfig, SplitMode, GlossaryTerm } from '../types';
-import { 
-  AlignJustify, 
-  Scissors, 
-  FileText, 
-  Type, 
-  Layers, 
-  Zap, 
-  ArrowDownToLine, 
-  Settings2, 
+import {
+  AlignJustify,
+  Scissors,
+  FileText,
+  Type,
+  Layers,
+  Zap,
+  ArrowDownToLine,
+  Settings2,
   Info,
   MessageSquare,
   Book,
   Bookmark,
   Sparkles
 } from 'lucide-react';
+import { useTranslation } from '../locales';
 
 interface SidebarProps {
   splitConfig: SplitConfig;
@@ -53,42 +54,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenGlossary,
   disabled = false
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="w-80 h-full bg-stone-50 border-r border-stone-200 flex flex-col z-20 font-sans transition-all duration-300">
       {/* Header */}
-      <div className="px-6 py-8 flex items-center gap-4 shrink-0">
+      <div className="px-6 py-6 flex items-center gap-3 shrink-0">
         <div className="w-10 h-10 rounded-full bg-brand-orange flex items-center justify-center shadow-md">
           <Sparkles size={20} className="text-white" strokeWidth={2} />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-brand-dark tracking-tight font-sans">AI Flow</h1>
-          <p className="text-xs font-serif italic text-stone-500">Editorial Processing</p>
+          <h1 className="text-xl font-bold text-brand-dark tracking-tight font-sans">{t('sidebar.title')}</h1>
+          <p className="text-xs font-serif italic text-stone-500">{t('sidebar.subtitle')}</p>
         </div>
       </div>
 
-      <div className={`flex-1 overflow-y-auto custom-scrollbar px-6 py-2 space-y-8 ${disabled ? 'opacity-50 pointer-events-none grayscale-[0.3]' : ''}`}>
+      <div className={`flex-1 overflow-y-auto custom-scrollbar px-6 py-4 space-y-8 ${disabled ? 'opacity-50 pointer-events-none grayscale-[0.3]' : ''}`}>
         
         {/* Slicer Section */}
         <section className="space-y-4">
-          <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400 uppercase tracking-widest mb-2 font-sans">
+          <div className="flex items-center gap-2 text-xs font-bold text-stone-500 uppercase tracking-widest mb-3 font-sans">
             <Scissors size={12} />
-            <span>Fragmentation</span>
+            <span>{t('sidebar.fragmentation')}</span>
           </div>
-          
+
           <div className="space-y-4">
             {/* Mode Selector */}
-            <div className="bg-stone-200/50 p-1 rounded-xl grid grid-cols-3 gap-1">
+            <div className="bg-stone-200/50 p-1 rounded-lg grid grid-cols-3 gap-1">
                 {[
-                    { val: SplitMode.CHARACTER, icon: Type, label: 'Chars' },
-                    { val: SplitMode.LINE, icon: AlignJustify, label: 'Lines' },
-                    { val: SplitMode.CUSTOM, icon: Settings2, label: 'Custom' },
+                    { val: SplitMode.CHARACTER, icon: Type, label: t('sidebar.chars') },
+                    { val: SplitMode.LINE, icon: AlignJustify, label: t('sidebar.lines') },
+                    { val: SplitMode.CUSTOM, icon: Settings2, label: t('sidebar.custom') },
                 ].map((opt) => (
                     <button
                         key={opt.val}
                         onClick={() => setSplitConfig({ ...splitConfig, mode: opt.val })}
-                        className={`flex flex-col items-center justify-center py-2.5 rounded-lg text-[10px] font-semibold transition-all duration-300 ${
-                            splitConfig.mode === opt.val 
-                            ? 'bg-white text-brand-orange shadow-sm ring-1 ring-stone-200' 
+                        className={`flex flex-col items-center justify-center py-3 rounded-lg text-xs font-semibold transition-all duration-300 ${
+                            splitConfig.mode === opt.val
+                            ? 'bg-white text-brand-orange shadow-sm'
                             : 'text-stone-500 hover:text-stone-800 hover:bg-stone-200'
                         }`}
                     >
@@ -102,45 +105,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="space-y-3">
               {splitConfig.mode === SplitMode.CHARACTER && (
                 <div className="animate-fade-in group">
-                  <label className="flex justify-between text-[11px] font-medium text-stone-500 mb-2 group-focus-within:text-brand-orange transition-colors">
-                    Chunk Size <span className="text-stone-300">chars</span>
+                  <label className="flex justify-between text-xs font-medium text-stone-500 mb-2 group-focus-within:text-brand-orange transition-colors">
+                    {t('sidebar.chunkSize')} <span className="text-stone-300">{t('sidebar.chunkSizeUnit')}</span>
                   </label>
                   <input
                     type="number"
                     value={splitConfig.chunkSize}
                     onChange={(e) => setSplitConfig({ ...splitConfig, chunkSize: Number(e.target.value) })}
-                    className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif"
+                    className="w-full px-4 py-3 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif"
                   />
                 </div>
               )}
 
               {splitConfig.mode === SplitMode.LINE && (
                 <div className="animate-fade-in group">
-                  <label className="flex justify-between text-[11px] font-medium text-stone-500 mb-2 group-focus-within:text-brand-orange transition-colors">
-                    Lines per Chunk <span className="text-stone-300">count</span>
+                  <label className="flex justify-between text-xs font-medium text-stone-500 mb-2 group-focus-within:text-brand-orange transition-colors">
+                    {t('sidebar.linesPerChunk')} <span className="text-stone-300">{t('sidebar.linesPerChunkUnit')}</span>
                   </label>
                   <input
                     type="number"
                     value={splitConfig.lineCount}
                     onChange={(e) => setSplitConfig({ ...splitConfig, lineCount: Number(e.target.value) })}
-                    className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif"
+                    className="w-full px-4 py-3 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif"
                   />
                 </div>
               )}
 
               {splitConfig.mode === SplitMode.CUSTOM && (
                 <div className="animate-fade-in space-y-3">
-                  <div className="bg-stone-200/50 p-1 rounded-xl grid grid-cols-2 gap-1">
+                  <div className="bg-stone-200/50 p-1 rounded-lg grid grid-cols-2 gap-1">
                     {[
-                      { val: 'text' as const, label: 'Text Rule' },
-                      { val: 'heading' as const, label: 'Headings' },
+                      { val: 'text' as const, label: t('sidebar.textRule') },
+                      { val: 'heading' as const, label: t('sidebar.headings') },
                     ].map((opt) => (
                       <button
                         key={opt.val}
                         onClick={() => setSplitConfig({ ...splitConfig, customRuleType: opt.val })}
-                        className={`flex items-center justify-center py-2 rounded-lg text-[10px] font-semibold transition-all duration-300 ${
+                        className={`flex items-center justify-center py-2.5 rounded-lg text-xs font-semibold transition-all duration-300 ${
                           splitConfig.customRuleType === opt.val
-                            ? 'bg-white text-brand-orange shadow-sm ring-1 ring-stone-200'
+                            ? 'bg-white text-brand-orange shadow-sm'
                             : 'text-stone-500 hover:text-stone-800 hover:bg-stone-200'
                         }`}
                       >
@@ -151,8 +154,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                   {splitConfig.customRuleType === 'heading' ? (
                     <div className="group">
-                      <label className="flex justify-between text-[11px] font-medium text-stone-500 mb-2 group-focus-within:text-brand-orange transition-colors">
-                        Heading Level <span className="text-stone-300">line-start</span>
+                      <label className="flex justify-between text-xs font-medium text-stone-500 mb-2 group-focus-within:text-brand-orange transition-colors">
+                        {t('sidebar.headingLevel')} <span className="text-stone-300">{t('sidebar.headingLevelUnit')}</span>
                       </label>
                       <select
                         value={splitConfig.customHeadingLevel}
@@ -162,7 +165,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             customHeadingLevel: Number(e.target.value) as 1 | 2 | 3 | 4 | 5 | 6,
                           })
                         }
-                        className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif"
+                        className="w-full px-4 py-3 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif"
                       >
                         {[1, 2, 3, 4, 5, 6].map((n) => (
                           <option key={n} value={n}>
@@ -175,8 +178,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <>
                       <div className="group">
                         <div className="flex items-center justify-between mb-2">
-                          <label className="flex justify-between text-[11px] font-medium text-stone-500 group-focus-within:text-brand-orange transition-colors">
-                            Rule <span className="text-stone-300">markers / /regex/</span>
+                          <label className="flex justify-between text-xs font-medium text-stone-500 group-focus-within:text-brand-orange transition-colors">
+                            {t('sidebar.rule')} <span className="text-stone-300">{t('sidebar.ruleUnit')}</span>
                           </label>
                           <div className="flex items-center gap-1.5">
                             <div className="group/keep relative flex items-center">
@@ -191,22 +194,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 }`}
                                 type="button"
                                 aria-pressed={splitConfig.customKeepSeparator}
-                                title="Keep marker"
+                                title={t('sidebar.keepMarker')}
                               >
                                 <Bookmark size={14} />
                               </button>
-                              <div className="absolute right-0 bottom-full mb-1.5 w-56 p-3 bg-brand-dark text-stone-50 text-[10px] leading-relaxed rounded-lg shadow-xl opacity-0 group-hover/keep:opacity-100 pointer-events-none transition-all z-50 font-serif">
-                                Keep marker: if enabled, the matched marker stays at the start of the next chunk.
+                              <div className="absolute right-0 bottom-full mb-1.5 w-56 p-3 bg-brand-dark text-stone-50 text-xs leading-relaxed rounded-lg shadow-xl opacity-0 group-hover/keep:opacity-100 pointer-events-none transition-all z-50 font-serif">
+                                {t('sidebar.keepMarkerTooltip')}
                               </div>
                             </div>
                             <button
                               onClick={onOpenSplitRuleAssistant}
-                              className="text-[10px] font-semibold text-stone-500 hover:text-brand-orange hover:bg-brand-orange/10 px-2 py-1 rounded-md transition-colors flex items-center gap-1 font-sans"
-                              title="AI generate + preview with sample text"
+                              className="text-xs font-semibold text-stone-500 hover:text-brand-orange hover:bg-brand-orange/10 px-2 py-1 rounded-md transition-colors flex items-center gap-1 font-sans"
+                              title={t('sidebar.assistTooltip')}
                               type="button"
                             >
                               <MessageSquare size={12} className="opacity-70" />
-                              Assist
+                              {t('sidebar.assist')}
                             </button>
                           </div>
                         </div>
@@ -214,8 +217,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           type="text"
                           value={splitConfig.customSeparator}
                           onChange={(e) => setSplitConfig({ ...splitConfig, customSeparator: e.target.value })}
-                          className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif placeholder:text-stone-300"
-                          placeholder="Part*  or  /Part\\s\\w+/i"
+                          className="w-full px-4 py-3 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif placeholder:text-stone-300"
+                          placeholder={t('sidebar.rulePlaceholder')}
                         />
                       </div>
                     </>
@@ -226,11 +229,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {/* Batch Size */}
                <div className="pt-2">
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-[11px] font-medium text-stone-500">Batch Size</label>
+                    <label className="text-xs font-medium text-stone-500">{t('sidebar.batchSize')}</label>
                     <div className="group relative flex items-center">
                          <Info size={12} className="text-stone-300 hover:text-brand-orange cursor-help transition-colors"/>
-                         <div className="absolute right-0 bottom-full mb-1.5 w-48 p-3 bg-brand-dark text-stone-50 text-[10px] leading-relaxed rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50 font-serif">
-                            Combine smaller pieces to flow together efficiently.
+                         <div className="absolute right-0 bottom-full mb-1.5 w-48 p-3 bg-brand-dark text-stone-50 text-xs leading-relaxed rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50 font-serif">
+                            {t('sidebar.batchSizeTooltip')}
                          </div>
                     </div>
                   </div>
@@ -239,7 +242,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     min="1"
                     value={splitConfig.batchSize}
                     onChange={(e) => setSplitConfig({ ...splitConfig, batchSize: Number(e.target.value) })}
-                    className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif"
+                    className="w-full px-4 py-3 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif"
                   />
               </div>
             </div>
@@ -249,9 +252,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 	        {/* Prompts Section */}
 	        <section className="space-y-4">
 	           <div className="flex items-center justify-between mb-2">
-	               <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans">
+	               <div className="flex items-center gap-2 text-xs font-bold text-stone-500 uppercase tracking-widest font-sans">
 	                <FileText size={12} />
-	                <span>Prompt</span>
+	                <span>{t('sidebar.prompt')}</span>
 	              </div>
 	          </div>
 
@@ -261,37 +264,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
 	                    <textarea
 	                        value={systemPrompt}
 	                        onChange={(e) => setSystemPrompt(e.target.value)}
-	                        className="w-full h-32 px-4 py-4 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange transition-all resize-none leading-7 placeholder:text-stone-300 shadow-sm font-serif"
-	                        placeholder="Enter your main prompt (applies globally)."
+	                        className="w-full h-32 px-4 py-4 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange transition-all resize-none leading-7 placeholder:text-stone-300 shadow-sm font-serif outline-none"
+	                        placeholder={t('sidebar.promptPlaceholder')}
 	                    />
 	                </div>
 	            </div>
 
             {/* Glossary Config */}
-            <div className="bg-white rounded-xl p-4 space-y-3 shadow-card border border-stone-200">
+            <div className="bg-white rounded-xl p-5 space-y-3 shadow-md border border-stone-200">
                 <div className="flex items-center justify-between">
                     <label className="flex items-center gap-3 cursor-pointer select-none">
                          <div className="relative inline-flex items-center">
-                            <input 
-                                type="checkbox" 
-                                className="sr-only peer" 
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
                                 checked={isGlossaryEnabled}
                                 onChange={(e) => setIsGlossaryEnabled(e.target.checked)}
                             />
                             <div className="w-8 h-4 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-brand-orange"></div>
                         </div>
-                        <span className="text-[11px] font-semibold text-stone-600 flex items-center gap-1.5 font-sans">
-                            <Book size={12} className="opacity-70"/> Glossary
+                        <span className="text-xs font-semibold text-stone-600 flex items-center gap-1.5 font-sans">
+                            <Book size={12} className="opacity-70"/> {t('sidebar.glossary')}
                         </span>
                     </label>
-                    <span className="text-[10px] text-stone-500 font-serif bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200">{glossaryTerms.length}</span>
+                    <span className="text-xs text-stone-500 font-serif bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200">{glossaryTerms.length}</span>
                 </div>
-                
-                <button 
+
+                <button
                     onClick={onOpenGlossary}
-                    className="w-full py-2 text-[10px] font-semibold text-stone-500 hover:text-brand-orange hover:bg-brand-orange/10 rounded-lg transition-colors font-sans"
+                    className="w-full py-2 text-xs font-semibold text-stone-500 hover:text-brand-orange hover:bg-brand-orange/10 rounded-lg transition-colors font-sans"
                 >
-                    Manage Terms
+                    {t('sidebar.manageTerms')}
                 </button>
             </div>
           </div>
@@ -299,34 +302,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Execution Section */}
         <section className="space-y-4">
-           <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400 uppercase tracking-widest mb-2 font-sans">
+           <div className="flex items-center gap-2 text-xs font-bold text-stone-500 uppercase tracking-widest mb-3 font-sans">
             <Layers size={12} />
-            <span>Execution</span>
+            <span>{t('sidebar.execution')}</span>
           </div>
-          
-          <div className="bg-white rounded-xl p-4 space-y-4 shadow-card border border-stone-200">
+
+          <div className="bg-white rounded-xl p-5 space-y-4 shadow-md border border-stone-200">
              <div className="flex bg-stone-100 p-1 rounded-lg">
                  <button
                     onClick={() => setIsParallel(false)}
-                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wide rounded-md transition-all ${!isParallel ? 'bg-white text-brand-orange shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+                    className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wide rounded-md transition-all ${!isParallel ? 'bg-white text-brand-orange shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
                  >
-                    Serial
+                    {t('sidebar.serial')}
                  </button>
 	                 <button
 	                    onClick={() => {
 	                        setIsParallel(true);
 	                    }}
-	                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wide rounded-md transition-all ${isParallel ? 'bg-white text-brand-orange shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
+	                    className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wide rounded-md transition-all ${isParallel ? 'bg-white text-brand-orange shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
 	                 >
-	                    Parallel
+	                    {t('sidebar.parallel')}
 	                 </button>
              </div>
 
               {isParallel && (
                  <div className="animate-fade-in px-1">
                     <div className="flex justify-between items-center mb-3">
-                        <label className="text-[11px] font-medium text-stone-600">Concurrency Limit</label>
-                        <span className="text-[10px] font-mono text-brand-orange bg-brand-orange/10 px-2 py-0.5 rounded-full">{concurrencyLimit}x</span>
+                        <label className="text-xs font-medium text-stone-600">{t('sidebar.concurrencyLimit')}</label>
+                        <span className="text-xs font-mono text-brand-orange bg-brand-orange/10 px-2 py-0.5 rounded-full">{concurrencyLimit}x</span>
                     </div>
                     <input
                       type="range"
@@ -338,34 +341,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                  </div>
               )}
-              
+
               {!isParallel && (
                 <div className="animate-fade-in pt-1">
                     <label className="flex items-center gap-3 cursor-pointer group">
                         <div className="relative inline-flex items-center">
-                            <input 
-                                type="checkbox" 
-                                className="sr-only peer" 
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
                                 checked={isContextual}
                                 onChange={(e) => setIsContextual(e.target.checked)}
                             />
                             <div className="w-8 h-4 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-brand-orange"></div>
                         </div>
-                        <span className="text-[11px] font-bold text-stone-700 flex items-center gap-1.5 group-hover:text-brand-orange transition-colors font-sans">
-                            Contextual Memory
+                        <span className="text-xs font-bold text-stone-700 flex items-center gap-1.5 group-hover:text-brand-orange transition-colors font-sans">
+                            {t('sidebar.contextualMemory')}
                         </span>
                     </label>
-                    <div className="mt-3 text-[10px] text-stone-500 leading-relaxed pl-1 font-serif italic">
-                        Maintains conversation history across chunks for better continuity.
+                    <div className="mt-3 text-xs text-stone-500 leading-relaxed pl-1 font-serif italic">
+                        {t('sidebar.contextualMemoryDesc')}
                     </div>
                 </div>
               )}
           </div>
         </section>
       </div>
-      
-      <div className="p-4 bg-stone-50 border-t border-stone-200 text-center shrink-0">
-        <p className="text-[9px] font-medium text-stone-400 tracking-wide font-sans">Privacy Focused • Local Execution</p>
+
+      <div className="px-6 py-4 bg-stone-50 border-t border-stone-200 text-center shrink-0">
+        <p className="text-xs font-medium text-stone-400 tracking-wide font-sans">{t('sidebar.privacyFooter')}</p>
       </div>
     </div>
   );
