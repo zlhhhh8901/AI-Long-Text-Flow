@@ -69,13 +69,24 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
   const [sampleText, setSampleText] = useState('');
   const [aiError, setAiError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [justGenerated, setJustGenerated] = useState(false);
+  const ruleRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setCandidate({ ...splitConfig, customRuleType: 'text' });
     setAiError(null);
     setIsGenerating(false);
+    setJustGenerated(false);
   }, [isOpen, splitConfig]);
+
+  useEffect(() => {
+    if (justGenerated && ruleRef.current) {
+      ruleRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const timer = setTimeout(() => setJustGenerated(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [justGenerated]);
 
   const previewChunks = useMemo(() => {
     if (!sampleText.trim()) return [];
@@ -100,6 +111,7 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
     if (!canGenerate || isGenerating) return;
     setAiError(null);
     setIsGenerating(true);
+    setJustGenerated(false);
     try {
       const prompt = buildAssistantPrompt(aiRequest, sampleText);
       const assistantConfig: AppConfig = {
@@ -124,6 +136,7 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
           customKeepSeparator: keepMarker,
         }));
         setIsGenerating(false);
+        setJustGenerated(true);
         return;
       }
 
@@ -139,6 +152,7 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
           customKeepSeparator: keepMarker,
         }));
         setIsGenerating(false);
+        setJustGenerated(true);
         return;
       }
 
@@ -163,7 +177,7 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
               <Sparkles size={20} className="text-brand-orange" />
               Split Rule Assistant
             </h2>
-            <p className="text-xs text-stone-500 mt-1 font-serif">Generate or test a Custom split rule using sample text.</p>
+            <p className="text-xs text-stone-500 mt-1 font-serif">Use AI to generate a custom split rule, then test it with sample text.</p>
           </div>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-700 hover:bg-stone-200 rounded-full p-1 transition-all">
             <X size={20} />
@@ -171,9 +185,61 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
         </div>
 
         <div className="p-5 overflow-y-auto custom-scrollbar space-y-5">
+          {/* Step 1: AI Generate */}
           <div className="bg-white rounded-xl p-4 shadow-card border border-stone-200 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans">Candidate Rule</div>
+              <div className="text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans flex items-center gap-2">
+                <MessageSquare size={12} />
+                Step 1: Describe Your Split Rule
+              </div>
+            </div>
+            {!appConfig.apiKey && (
+              <div className="bg-rose-50 border border-rose-100 rounded-lg p-3 text-xs text-rose-700 font-serif flex gap-2">
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                Configure an API key first to use AI generation.
+              </div>
+            )}
+            <textarea
+              value={aiRequest}
+              onChange={(e) => setAiRequest(e.target.value)}
+              className="w-full min-h-[90px] p-4 border border-stone-200 rounded-xl resize-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange outline-none text-sm font-serif bg-white text-stone-800 leading-relaxed"
+              placeholder="Describe how you want to split (e.g., split before each 'Part I/II/III' heading)."
+            />
+            {aiError && (
+              <div className="bg-rose-50 border border-rose-100 rounded-lg p-3 text-xs text-rose-700 font-serif flex gap-2">
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                {aiError}
+              </div>
+            )}
+            <button
+              onClick={handleGenerate}
+              disabled={!canGenerate || isGenerating}
+              className="w-full py-2.5 bg-brand-orange text-white font-bold rounded-lg hover:bg-brand-orange/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 font-sans"
+              type="button"
+            >
+              <Sparkles size={16} /> {isGenerating ? 'Generating…' : 'Generate Rule'}
+            </button>
+          </div>
+
+          {/* Step 2: Generated Rule */}
+          <div
+            ref={ruleRef}
+            className={`bg-white rounded-xl p-4 shadow-card border space-y-3 transition-all duration-500 ${
+              justGenerated
+                ? 'border-green-400 bg-green-50/30 ring-2 ring-green-400/20'
+                : 'border-stone-200'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans">
+                Step 2: Review & Edit Rule
+              </div>
+              {justGenerated && (
+                <div className="text-[10px] font-bold text-green-600 uppercase tracking-widest font-sans flex items-center gap-1 animate-fade-in">
+                  <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                  Rule Generated
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -207,9 +273,10 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
             </div>
           </div>
 
+          {/* Step 3: Sample Text & Preview */}
           <div className="bg-white rounded-xl p-4 shadow-card border border-stone-200 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans">Sample Text</div>
+              <div className="text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans">Step 3: Test with Sample Text</div>
               <div className="text-[10px] text-stone-500 font-serif">{sampleText.trim() ? `${previewChunks.length} chunk(s)` : 'Paste sample to preview'}</div>
             </div>
             <textarea
@@ -229,41 +296,6 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="bg-white rounded-xl p-4 shadow-card border border-stone-200 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans flex items-center gap-2">
-                <MessageSquare size={12} />
-                AI Generate
-              </div>
-            </div>
-            {!appConfig.apiKey && (
-              <div className="bg-rose-50 border border-rose-100 rounded-lg p-3 text-xs text-rose-700 font-serif flex gap-2">
-                <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                Configure an API key first to use AI generation.
-              </div>
-            )}
-            <textarea
-              value={aiRequest}
-              onChange={(e) => setAiRequest(e.target.value)}
-              className="w-full min-h-[90px] p-4 border border-stone-200 rounded-xl resize-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange outline-none text-sm font-serif bg-white text-stone-800 leading-relaxed"
-              placeholder="Describe how you want to split (e.g., split before each 'Part I/II/III' heading)."
-            />
-            {aiError && (
-              <div className="bg-rose-50 border border-rose-100 rounded-lg p-3 text-xs text-rose-700 font-serif flex gap-2">
-                <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                {aiError}
-              </div>
-            )}
-            <button
-              onClick={handleGenerate}
-              disabled={!canGenerate || isGenerating}
-              className="w-full py-2.5 bg-brand-orange text-white font-bold rounded-lg hover:bg-brand-orange/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 font-sans"
-              type="button"
-            >
-              <Sparkles size={16} /> {isGenerating ? 'Generating…' : 'Generate Rule'}
-            </button>
           </div>
         </div>
 
