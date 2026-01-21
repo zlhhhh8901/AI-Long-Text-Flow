@@ -186,6 +186,20 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                             <AlertCircle size={18} className="text-rose-400"/>
                         </div>
                         <p className="text-rose-600 font-medium text-sm font-serif">{chunk.errorMsg || 'Unknown error'}</p>
+
+                        {/* CORS Error Help */}
+                        {chunk.errorMsg?.includes('[CORS]') && (
+                            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-left max-w-md">
+                                <p className="text-xs font-bold text-amber-800 mb-2 font-sans">💡 How to fix CORS issues:</p>
+                                <ul className="text-xs text-amber-700 space-y-1 font-serif leading-relaxed">
+                                    <li>• Use official OpenAI API (https://api.openai.com/v1)</li>
+                                    <li>• Check if your custom API supports CORS</li>
+                                    <li>• Consider using a browser extension like "CORS Unblock"</li>
+                                    <li>• Or deploy a backend proxy server</li>
+                                </ul>
+                            </div>
+                        )}
+
                         <button onClick={() => onRetry(chunk.id)} className="mt-3 text-xs px-3 py-1.5 bg-white border border-rose-100 text-rose-500 rounded-lg hover:bg-rose-50 transition-colors font-sans font-medium">Try Again</button>
                     </div>
                 ) : (

@@ -109,6 +109,12 @@ export const processChunkWithLLM = async (
              session.openaiHistory.pop();
          }
          console.error("LLM Request Failed", error);
+
+         // Detect CORS errors
+         if (error.name === 'TypeError' && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+           throw new Error("[CORS] Unable to connect to API. This may be a CORS (Cross-Origin) issue. Please check your API configuration.");
+         }
+
          throw new Error(error.message || "Unknown error occurred");
       }
     }
@@ -191,6 +197,12 @@ export const processChunkWithLLM = async (
     return content;
   } catch (error: any) {
     console.error("LLM Request Failed", error);
+
+    // Detect CORS errors
+    if (error.name === 'TypeError' && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+      throw new Error("[CORS] Unable to connect to API. This may be a CORS (Cross-Origin) issue. Please check your API configuration.");
+    }
+
     throw new Error(error.message || "Unknown error occurred");
   }
 };
