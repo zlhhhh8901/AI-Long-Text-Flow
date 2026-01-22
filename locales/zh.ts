@@ -32,6 +32,8 @@ export default {
     // Custom Split Mode
     textRule: "Text Rule",
     headings: "Headings",
+    ruleType: "规则类型",
+    ruleTypeUnit: "文本 / 标题",
     headingLevel: "标题级别",
     headingLevelUnit: "line-start",
     rule: "Rule",
@@ -39,7 +41,7 @@ export default {
     keepMarker: "保留标记",
     keepMarkerTooltip: "保留标记：如果启用，匹配的标记将保留在下一个分块的开头。",
     assist: "Assist",
-    assistTooltip: "AI 生成 + 使用示例文本预览",
+    assistTooltip: "支持纯文本（Part 1）、通配符（Part*）或正则表达式（/Part\\s\\w+/i）。点击按钮可使用 AI 生成规则并预览效果。",
     rulePlaceholder: "Part*  or  /Part\\s\\w+/i",
 
     // Batch Size

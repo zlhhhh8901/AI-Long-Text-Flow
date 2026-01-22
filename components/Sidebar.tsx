@@ -134,23 +134,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {splitConfig.mode === SplitMode.CUSTOM && (
                 <div className="animate-fade-in space-y-3">
-                  <div className="bg-stone-200/50 p-1 rounded-lg grid grid-cols-2 gap-1">
-                    {[
-                      { val: 'text' as const, label: t('sidebar.textRule') },
-                      { val: 'heading' as const, label: t('sidebar.headings') },
-                    ].map((opt) => (
-                      <button
-                        key={opt.val}
-                        onClick={() => setSplitConfig({ ...splitConfig, customRuleType: opt.val })}
-                        className={`flex items-center justify-center py-2.5 rounded-lg text-xs font-semibold transition-all duration-300 ${
-                          splitConfig.customRuleType === opt.val
-                            ? 'bg-white text-brand-orange shadow-sm'
-                            : 'text-stone-500 hover:text-stone-800 hover:bg-stone-200'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
+                  <div className="group">
+                    <label className="flex justify-between text-xs font-medium text-stone-500 mb-2 group-focus-within:text-brand-orange transition-colors">
+                      {t('sidebar.ruleType')} <span className="text-stone-300">{t('sidebar.ruleTypeUnit')}</span>
+                    </label>
+                    <select
+                      value={splitConfig.customRuleType}
+                      onChange={(e) => setSplitConfig({ ...splitConfig, customRuleType: e.target.value as CustomSplitRuleType })}
+                      className="w-full pl-3 pr-3 py-3 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M6%209L1%204h10z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[position:right_0.75rem_center] bg-no-repeat"
+                    >
+                      <option value="text">{t('sidebar.textRule')}</option>
+                      <option value="heading">{t('sidebar.headings')}</option>
+                    </select>
                   </div>
 
                   {splitConfig.customRuleType === 'heading' ? (
@@ -166,7 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             customHeadingLevel: Number(e.target.value) as 1 | 2 | 3 | 4 | 5 | 6,
                           })
                         }
-                        className="w-full px-4 py-3 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif"
+                        className="w-full pl-3 pr-3 py-3 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M6%209L1%204h10z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[position:right_0.75rem_center] bg-no-repeat"
                       >
                         {[1, 2, 3, 4, 5, 6].map((n) => (
                           <option key={n} value={n}>
@@ -203,15 +198,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 {t('sidebar.keepMarkerTooltip')}
                               </div>
                             </div>
-                            <button
-                              onClick={onOpenSplitRuleAssistant}
-                              className="text-xs font-semibold text-stone-500 hover:text-brand-orange hover:bg-brand-orange/10 px-2 py-1 rounded-md transition-colors flex items-center gap-1 font-sans"
-                              title={t('sidebar.assistTooltip')}
-                              type="button"
-                            >
-                              <MessageSquare size={12} className="opacity-70" />
-                              {t('sidebar.assist')}
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={onOpenSplitRuleAssistant}
+                                className="text-stone-500 hover:text-brand-orange hover:bg-brand-orange/10 p-1.5 rounded-md transition-colors"
+                                type="button"
+                              >
+                                <MessageSquare size={12} className="opacity-70" />
+                              </button>
+                              <div className="group/assist relative inline-flex">
+                                <Info size={12} className="text-stone-300 hover:text-brand-orange cursor-help transition-colors"/>
+                                <div className="absolute right-0 bottom-full mb-1.5 w-56 p-3 bg-brand-dark text-stone-50 text-xs leading-relaxed rounded-lg shadow-xl opacity-0 group-hover/assist:opacity-100 pointer-events-none transition-all z-50 font-serif">
+                                  {t('sidebar.assistTooltip')}
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                         <input

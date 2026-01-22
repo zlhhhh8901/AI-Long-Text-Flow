@@ -32,6 +32,8 @@ export default {
     // Custom Split Mode
     textRule: "Text Rule",
     headings: "Headings",
+    ruleType: "Rule Type",
+    ruleTypeUnit: "text / heading",
     headingLevel: "Heading Level",
     headingLevelUnit: "line-start",
     rule: "Rule",
@@ -39,7 +41,7 @@ export default {
     keepMarker: "Keep marker",
     keepMarkerTooltip: "Keep marker: if enabled, the matched marker stays at the start of the next chunk.",
     assist: "Assist",
-    assistTooltip: "AI generate + preview with sample text",
+    assistTooltip: "Supports plain text (Part 1), wildcards (Part*), or regex (/Part\\s\\w+/i). Click to use AI for rule generation and preview.",
     rulePlaceholder: "Part*  or  /Part\\s\\w+/i",
 
     // Batch Size
