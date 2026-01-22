@@ -3,6 +3,7 @@ import { X, MessageSquare, Sparkles, AlertCircle } from 'lucide-react';
 import { AppConfig, SplitConfig, SplitMode } from '../types';
 import { splitText } from '../services/splitterService';
 import { processChunkWithLLM } from '../services/llmService';
+import { useTranslation } from '../locales';
 
 interface SplitRuleModalProps {
   isOpen: boolean;
@@ -64,6 +65,7 @@ const getChunkPreview = (content: string) => {
 };
 
 export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose, appConfig, splitConfig, onApply }) => {
+  const { t } = useTranslation();
   const [candidate, setCandidate] = useState<SplitConfig>(splitConfig);
   const [aiRequest, setAiRequest] = useState('');
   const [sampleText, setSampleText] = useState('');
@@ -175,9 +177,9 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
           <div>
             <h2 className="text-lg font-bold text-brand-dark flex items-center gap-2 font-sans">
               <Sparkles size={20} className="text-brand-orange" />
-              Split Rule Assistant
+              {t('splitRuleModal.title')}
             </h2>
-            <p className="text-xs text-stone-500 mt-1 font-serif">Use AI to generate a custom split rule, then test it with sample text.</p>
+            <p className="text-xs text-stone-500 mt-1 font-serif">{t('splitRuleModal.subtitle')}</p>
           </div>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-700 hover:bg-stone-200 rounded-full p-1 transition-all">
             <X size={20} />
@@ -190,20 +192,20 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
             <div className="flex items-center justify-between">
               <div className="text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans flex items-center gap-2">
                 <MessageSquare size={12} />
-                Step 1: Describe Your Split Rule
+                {t('splitRuleModal.step1')}
               </div>
             </div>
             {!appConfig.apiKey && (
               <div className="bg-rose-50 border border-rose-100 rounded-lg p-3 text-xs text-rose-700 font-serif flex gap-2">
                 <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                Configure an API key first to use AI generation.
+                {t('splitRuleModal.errorNoApiKey')}
               </div>
             )}
             <textarea
               value={aiRequest}
               onChange={(e) => setAiRequest(e.target.value)}
               className="w-full min-h-[90px] p-4 border border-stone-200 rounded-xl resize-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange outline-none text-sm font-serif bg-white text-stone-800 leading-relaxed"
-              placeholder="Describe how you want to split (e.g., split before each 'Part I/II/III' heading)."
+              placeholder={t('splitRuleModal.step1Placeholder')}
             />
             {aiError && (
               <div className="bg-rose-50 border border-rose-100 rounded-lg p-3 text-xs text-rose-700 font-serif flex gap-2">
@@ -217,7 +219,7 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
               className="w-full py-2.5 bg-brand-orange text-white font-bold rounded-lg hover:bg-brand-orange/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 font-sans"
               type="button"
             >
-              <Sparkles size={16} /> {isGenerating ? 'Generating…' : 'Generate Rule'}
+              <Sparkles size={16} /> {isGenerating ? t('splitRuleModal.generating') : t('splitRuleModal.generateRule')}
             </button>
           </div>
 
@@ -232,12 +234,12 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
           >
             <div className="flex items-center justify-between">
               <div className="text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans">
-                Step 2: Review & Edit Rule
+                {t('splitRuleModal.step3')}
               </div>
               {justGenerated && (
                 <div className="text-[10px] font-bold text-green-600 uppercase tracking-widest font-sans flex items-center gap-1 animate-fade-in">
                   <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                  Rule Generated
+                  {t('splitRuleModal.generatedRule')}
                 </div>
               )}
             </div>
@@ -245,20 +247,20 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
             <div className="space-y-3">
               <div>
                 <label className="flex justify-between text-[11px] font-medium text-stone-500 mb-2 font-sans">
-                  Rule <span className="text-stone-300 font-serif">plain markers or /regex/flags</span>
+                  {t('sidebar.rule')} <span className="text-stone-300 font-serif">{t('sidebar.ruleUnit')}</span>
                 </label>
                 <input
                   type="text"
                   value={candidate.customSeparator}
                   onChange={(e) => setCandidate(prev => ({ ...prev, customSeparator: e.target.value }))}
                   className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm text-stone-800 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange shadow-sm transition-all outline-none font-serif placeholder:text-stone-300"
-                  placeholder="Part*  or  /Part\\s\\w+/i"
+                  placeholder={t('sidebar.rulePlaceholder')}
                 />
               </div>
               <div className="flex items-center justify-between bg-stone-50 border border-stone-200 rounded-lg p-3">
                 <div>
-                  <div className="text-[11px] font-semibold text-stone-600 font-sans">Keep marker</div>
-                  <div className="text-[10px] text-stone-400 font-serif">Keep = next chunk starts with the match.</div>
+                  <div className="text-[11px] font-semibold text-stone-600 font-sans">{t('sidebar.keepMarker')}</div>
+                  <div className="text-[10px] text-stone-400 font-serif">{t('sidebar.keepMarkerTooltip')}</div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -276,21 +278,21 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
           {/* Step 3: Sample Text & Preview */}
           <div className="bg-white rounded-xl p-4 shadow-card border border-stone-200 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans">Step 3: Test with Sample Text</div>
-              <div className="text-[10px] text-stone-500 font-serif">{sampleText.trim() ? `${previewChunks.length} chunk(s)` : 'Paste sample to preview'}</div>
+              <div className="text-[11px] font-bold text-stone-400 uppercase tracking-widest font-sans">{t('splitRuleModal.step2')}</div>
+              <div className="text-[10px] text-stone-500 font-serif">{sampleText.trim() ? `${previewChunks.length} ${t('splitRuleModal.previewChunks')}` : t('splitRuleModal.previewEmptyDesc')}</div>
             </div>
             <textarea
               value={sampleText}
               onChange={(e) => setSampleText(e.target.value)}
               className="w-full min-h-[140px] p-4 border border-stone-200 rounded-xl resize-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange outline-none text-sm font-mono bg-white text-stone-800"
-              placeholder={`Paste a small excerpt to test splitting.\n\nExample:\n# 1\n11\n# 2\n22`}
+              placeholder={t('splitRuleModal.step2Placeholder')}
             />
 
             {sampleText.trim() && (
               <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-2">
                 {previewChunks.map((c) => (
                   <div key={c.id} className="bg-stone-50 border border-stone-200 rounded-lg p-3">
-                    <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest font-sans mb-2">Chunk {c.index}</div>
+                    <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest font-sans mb-2">{t('splitRuleModal.previewChunk')} {c.index}</div>
                     <pre className="text-xs text-stone-700 font-mono whitespace-pre-wrap leading-relaxed">{getChunkPreview(c.rawContent)}</pre>
                   </div>
                 ))}
@@ -301,10 +303,10 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
 
         <div className="p-5 border-t border-stone-100 flex justify-end gap-3 rounded-b-2xl bg-white font-sans">
           <button onClick={onClose} className="px-6 py-2.5 bg-stone-100 text-stone-700 font-bold rounded-lg hover:bg-stone-200 transition-colors" type="button">
-            Cancel
+            {t('common.cancel')}
           </button>
           <button onClick={handleApply} className="px-6 py-2.5 bg-brand-orange text-white font-bold rounded-lg hover:bg-brand-orange/90 transition-colors" type="button">
-            Apply
+            {t('splitRuleModal.applyRule')}
           </button>
         </div>
       </div>

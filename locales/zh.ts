@@ -199,11 +199,12 @@ export default {
     // Preview
     previewTitle: "预览",
     previewChunks: "个分块",
+    previewChunk: "分块",
     previewEmpty: "暂无预览",
     previewEmptyDesc: "生成规则以查看预览",
 
     // Generated Rule
-    generatedRule: "生成的规则：",
+    generatedRule: "规则已生成",
     ruleType: "规则类型：",
     ruleTypeText: "Text",
     ruleTypeHeading: "Heading",

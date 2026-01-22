@@ -199,6 +199,7 @@ export default {
     // Preview
     previewTitle: "Preview",
     previewChunks: "chunks",
+    previewChunk: "Chunk",
     previewEmpty: "No preview yet",
     previewEmptyDesc: "Generate a rule to see the preview",
 
