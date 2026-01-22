@@ -40,7 +40,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, confi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/20 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-lg w-full max-w-md overflow-hidden animate-fade-in transform transition-all scale-100 border border-stone-200">
+      <div className="bg-white rounded-2xl shadow-lg w-[95vw] sm:w-full max-w-md overflow-hidden animate-fade-in transform transition-all scale-100 border border-stone-200">
         <div className="bg-stone-50 border-b border-stone-100 px-6 py-5 flex justify-between items-center">
           <div>
             <h2 className="text-lg font-bold text-brand-dark flex items-center gap-2 font-sans">
@@ -58,7 +58,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, confi
           {/* Provider Selector */}
           <div>
             <label className="block text-xs font-bold text-stone-500 uppercase tracking-wide mb-3 font-sans">{t('settings.aiProvider')}</label>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 rounded-lg border border-stone-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-1 bg-stone-100 rounded-lg border border-stone-200">
                 <button
                     onClick={() => handleProviderChange('gemini')}
                     className={`flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold transition-all font-sans ${
@@ -87,7 +87,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, confi
             <label className="block text-xs font-bold text-stone-500 uppercase tracking-wide mb-3 font-sans">
               {t('settings.language')}
             </label>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 rounded-lg border border-stone-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-1 bg-stone-100 rounded-lg border border-stone-200">
               <button
                 onClick={() => setLocalConfig({ ...localConfig, language: 'en' })}
                 className={`flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold transition-all font-sans ${
@@ -143,7 +143,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, confi
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-stone-500 uppercase tracking-wide mb-3 flex items-center gap-2 font-sans">
                 <Cpu size={14} /> {t('settings.modelName')}

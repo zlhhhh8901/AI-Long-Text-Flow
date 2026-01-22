@@ -14,7 +14,8 @@ import {
   Book,
   Bookmark,
   Sparkles,
-  Github
+  Github,
+  X
 } from 'lucide-react';
 import { useTranslation } from '../locales';
 
@@ -35,6 +36,10 @@ interface SidebarProps {
   setIsGlossaryEnabled: (val: boolean) => void;
   onOpenGlossary: () => void;
   disabled?: boolean;
+  // Mobile props
+  isMobile?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -53,14 +58,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isGlossaryEnabled,
   setIsGlossaryEnabled,
   onOpenGlossary,
-  disabled = false
+  disabled = false,
+  isMobile = false,
+  isOpen = true,
+  onClose
 }) => {
   const { t } = useTranslation();
 
   return (
-    <div className="w-80 h-full bg-stone-50 border-r border-stone-200 flex flex-col z-20 font-sans transition-all duration-300">
+    <div className={`
+      ${isMobile ? 'fixed' : 'relative'}
+      ${isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'}
+      ${isMobile ? 'w-[85vw] max-w-[320px]' : 'w-80'}
+      h-full bg-stone-50 border-r border-stone-200 flex flex-col z-50
+      transition-transform duration-300 ease-out
+      ${isMobile ? 'left-0 top-0' : ''}
+      font-sans
+    `}>
       {/* Header */}
       <div className="px-6 py-6 flex items-center gap-3 shrink-0">
+        {isMobile && (
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-stone-200 rounded-lg transition-colors"
+            aria-label="Close menu"
+          >
+            <X size={20} className="text-brand-dark" />
+          </button>
+        )}
         <div className="w-10 h-10 rounded-full bg-brand-orange flex items-center justify-center shadow-md">
           <Sparkles size={20} className="text-white" strokeWidth={2} />
         </div>

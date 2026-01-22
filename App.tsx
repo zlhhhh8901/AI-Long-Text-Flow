@@ -10,7 +10,7 @@ import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingS
 import { splitText } from './services/splitterService';
 import { processChunkWithLLM, initializeSession, LLMSession } from './services/llmService';
 import { buildEffectiveSystemPrompt, DEFAULT_GLOSSARY_PROMPT, findMatchingTerms, formatGlossarySection, mergeGlossaryTerms } from './services/glossaryService';
-import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, FileText, MessageSquare, Feather, RefreshCw, Github } from 'lucide-react';
+import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, FileText, MessageSquare, Feather, RefreshCw, Github, Menu } from 'lucide-react';
 import { TranslationProvider } from './locales';
 
 function App() {
@@ -67,6 +67,10 @@ function App() {
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Mobile state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
   const toolbarScrollRef = useRef<HTMLDivElement | null>(null);
   const exportButtonRef = useRef<HTMLButtonElement | null>(null);
   const [exportMenuPosition, setExportMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -81,6 +85,28 @@ function App() {
   useEffect(() => {
     isProcessingRef.current = isProcessing;
   }, [isProcessing]);
+
+  // Mobile detection effect
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (!mobile) setIsSidebarOpen(false); // Close drawer on desktop
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Prevent body scroll when drawer open
+  useEffect(() => {
+    if (isMobile && isSidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobile, isSidebarOpen]);
 
   const updateExportMenuPosition = useCallback(() => {
     const button = exportButtonRef.current;
@@ -449,7 +475,26 @@ function App() {
         </div>
       )}
 
-		      <Sidebar 
+      {/* Hamburger Menu - Mobile Only */}
+      {isMobile && (
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="fixed top-4 left-4 z-30 p-3 bg-white rounded-lg shadow-card border border-stone-200 lg:hidden"
+          aria-label="Open menu"
+        >
+          <Menu size={24} className="text-brand-dark" />
+        </button>
+      )}
+
+      {/* Backdrop - Mobile Only */}
+      {isMobile && isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+		      <Sidebar
 		        splitConfig={splitConfig}
 		        setSplitConfig={setSplitConfig}
             onOpenSplitRuleAssistant={() => setIsSplitRuleModalOpen(true)}
@@ -467,6 +512,10 @@ function App() {
 	        isGlossaryEnabled={isGlossaryEnabled}
         setIsGlossaryEnabled={setIsGlossaryEnabled}
 	        onOpenGlossary={() => setIsGlossaryModalOpen(true)}
+          // Mobile Props
+          isMobile={isMobile}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
 	      />
 
         <SplitRuleModal
@@ -479,39 +528,39 @@ function App() {
 
 	      <main className="flex-1 flex flex-col h-full min-w-0 z-10 relative">
         {/* Floating Toolbar */}
-        <div className="px-6 py-4 shrink-0 overflow-x-auto custom-scrollbar" ref={toolbarScrollRef}>
-            <header className="bg-white border border-stone-200 rounded-xl flex items-center justify-between px-6 py-4 shadow-sm gap-4 transition-all hover:shadow-md min-w-max">
-            <div className="flex items-center gap-3 shrink-0">
+        <div className={`px-6 py-4 shrink-0 overflow-x-auto custom-scrollbar ${isMobile ? 'pt-20' : ''}`} ref={toolbarScrollRef}>
+            <header className="bg-white border border-stone-200 rounded-xl flex flex-wrap items-center justify-between px-4 sm:px-6 py-3 sm:py-4 shadow-sm gap-3 sm:gap-4 transition-all hover:shadow-md min-w-max">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <button
                     onClick={handleOpenManualImport}
                     disabled={isProcessing}
-                    className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-stone-600 bg-white border border-stone-200 hover:bg-stone-50 hover:text-brand-orange hover:border-brand-orange/30 rounded-lg transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-sans"
+                    className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 text-xs font-semibold text-stone-600 bg-white border border-stone-200 hover:bg-stone-50 hover:text-brand-orange hover:border-brand-orange/30 rounded-lg transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-sans"
                 >
-                <Clipboard size={14} /> <span className="hidden lg:inline">Paste</span>
+                <Clipboard size={14} /> <span className="hidden sm:inline">Paste</span>
                 </button>
-                <label className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-stone-600 bg-white border border-stone-200 hover:bg-stone-50 hover:text-brand-orange hover:border-brand-orange/30 rounded-lg transition-all shadow-sm cursor-pointer font-sans ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
-                <Upload size={14} /> <span className="hidden lg:inline">Import</span>
+                <label className={`flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 text-xs font-semibold text-stone-600 bg-white border border-stone-200 hover:bg-stone-50 hover:text-brand-orange hover:border-brand-orange/30 rounded-lg transition-all shadow-sm cursor-pointer font-sans ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
+                <Upload size={14} /> <span className="hidden sm:inline">Import</span>
                 <input type="file" accept=".txt,.md" onChange={handleFileUpload} className="hidden" disabled={isProcessing}/>
                 </label>
                 {chunks.length > 0 && (
                     <button
                         onClick={handleClear}
-                        className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 hover:bg-rose-100 rounded-lg transition-all ml-2 font-sans"
+                        className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 hover:bg-rose-100 rounded-lg transition-all font-sans"
                     >
-                    <Trash2 size={14} /> <span className="hidden lg:inline">Clear</span>
+                    <Trash2 size={14} /> <span className="hidden sm:inline">Clear</span>
                     </button>
                 )}
             </div>
 
-	            <div className="flex items-center gap-4 shrink-0">
+	            <div className="flex items-center gap-3 sm:gap-4 shrink-0">
 	                {globalError && (
 	                    <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-100 text-rose-700 text-xs font-semibold font-sans max-w-[340px]">
 	                        <span className="truncate">{globalError}</span>
 	                    </div>
 	                )}
 	                {chunks.length > 0 && (
-	                    <div className="flex items-center gap-6 animate-fade-in">
-	                        <div className="hidden md:flex flex-col w-36 lg:w-52 xl:w-64 transition-all duration-500 ease-in-out">
+	                    <div className="flex items-center gap-4 sm:gap-6 animate-fade-in">
+	                        <div className="hidden md:flex flex-col w-32 sm:w-36 lg:w-52 xl:w-64 transition-all duration-500 ease-in-out">
 	                            <div className="flex justify-between text-xs mb-1.5 uppercase tracking-wider font-bold font-sans">
 	                                <span className="text-stone-500 truncate mr-2">{isParallel ? 'Parallel' : (isContextual ? 'Contextual' : 'Serial')}</span>
 	                                <span className="text-stone-800">{Math.round(progress)}%</span>
@@ -520,12 +569,12 @@ function App() {
                                 <div className="h-full bg-brand-orange transition-all duration-700 ease-out" style={{ width: `${progress}%` }}></div>
                             </div>
                         </div>
-                        
+
                         {completedCount > 0 && (
                             <div className="relative">
-                                <button 
-                                    onClick={() => setIsExportMenuOpen(!isExportMenuOpen)} 
-                                    className={`p-2 rounded-lg transition-all ${isExportMenuOpen ? 'bg-brand-orange/10 text-brand-orange' : 'text-stone-400 hover:text-brand-orange bg-stone-50 hover:bg-white'}`} 
+                                <button
+                                    onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                                    className={`p-2 sm:p-2.5 rounded-lg transition-all ${isExportMenuOpen ? 'bg-brand-orange/10 text-brand-orange' : 'text-stone-400 hover:text-brand-orange bg-stone-50 hover:bg-white'}`}
                                     title="Export Options"
                                     ref={exportButtonRef}
                                 >
@@ -541,7 +590,7 @@ function App() {
                 <button
                     onClick={isAllSuccess && !isProcessing ? handleResetResults : handleStartPause}
                     disabled={chunks.length === 0}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold shadow-md transition-all transform hover:-translate-y-0.5 active:translate-y-0 font-sans ${
+                    className={`flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-bold shadow-md transition-all transform hover:-translate-y-0.5 active:translate-y-0 font-sans ${
                         isProcessing
                         ? 'bg-stone-100 text-stone-600 hover:bg-stone-200 border border-stone-300'
                         : 'bg-brand-orange text-white hover:bg-brand-orange/90 shadow-brand-orange/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:translate-y-0'
@@ -549,20 +598,20 @@ function App() {
                 >
                     {isProcessing ? (
                       <>
-                        <Pause size={16} fill="currentColor" /> <span className="hidden md:inline">Pause</span>
+                        <Pause size={16} fill="currentColor" /> <span className="hidden sm:inline">Pause</span>
                       </>
                     ) : isAllSuccess ? (
                       <>
-                        <RefreshCw size={16} /> <span className="hidden md:inline">Clear Results</span>
+                        <RefreshCw size={16} /> <span className="hidden sm:inline">Clear Results</span>
                       </>
                     ) : (
                       <>
-                        <Play size={16} fill="currentColor" /> <span className="hidden md:inline">Start Flow</span>
+                        <Play size={16} fill="currentColor" /> <span className="hidden sm:inline">Start Flow</span>
                       </>
                     )}
                 </button>
 
-                <button onClick={() => setIsSettingsOpen(true)} className="p-2.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors">
+                <button onClick={() => setIsSettingsOpen(true)} className="p-2 sm:p-2.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors">
                     <Settings size={20} />
                 </button>
             </div>
@@ -602,7 +651,7 @@ function App() {
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-6 pb-20 scroll-smooth relative custom-scrollbar">
             {chunks.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-stone-400 animate-fade-in pb-16">
+                <div className="h-full flex flex-col items-center justify-center text-stone-400 animate-fade-in pb-16 pt-8">
                     <div className="relative group cursor-pointer" onClick={handleClipboardImport}>
                         <div className="absolute inset-0 bg-stone-200/50 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                         <div className="relative w-full max-w-lg border border-dashed border-stone-300 rounded-2xl p-12 flex flex-col items-center justify-center bg-white hover:border-brand-orange/40 transition-all duration-300">

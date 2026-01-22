@@ -131,10 +131,10 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
       {/* Content Body */}
       {isExpanded && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 animate-slide-up border-t border-stone-100">
-          
+        <div className="flex flex-col lg:grid lg:grid-cols-12 animate-slide-up border-t border-stone-100">
+
           {/* Left Column: Input */}
-          <div className={`${hasOutput ? 'lg:col-span-5' : 'lg:col-span-12'} flex flex-col bg-brand-light min-h-[200px] border-r border-stone-100`}>
+          <div className={`${hasOutput ? 'w-full lg:col-span-5' : 'w-full lg:col-span-12'} flex flex-col bg-brand-light min-h-[200px] lg:border-r border-stone-100`}>
              <div className="flex items-center justify-between px-6 py-3 border-b border-stone-200/50">
                 <span className="text-xs font-bold text-stone-500 uppercase tracking-widest font-sans">
                     {t('resultCard.source')}
@@ -175,7 +175,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
           {/* Right Column: Output */}
           {hasOutput && (
-            <div className="lg:col-span-7 bg-white min-h-[200px] flex flex-col relative">
+            <div className="w-full lg:col-span-7 bg-white min-h-[200px] flex flex-col relative border-t lg:border-t-0 border-stone-100">
                 {chunk.status === ProcessingStatus.SUCCESS ? (
                     <div className="p-6 flex-1">
                         <div className="prose prose-sm prose-stone max-w-none prose-p:my-3 prose-headings:font-sans prose-headings:font-bold prose-headings:text-brand-dark text-stone-700 leading-7 font-serif">

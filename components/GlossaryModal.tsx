@@ -92,7 +92,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/20 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-lg w-full max-w-2xl flex flex-col max-h-[85vh] animate-fade-in border border-stone-200">
+      <div className="bg-white rounded-2xl shadow-lg w-[95vw] sm:w-full max-w-2xl flex flex-col max-h-[85vh] animate-fade-in border border-stone-200">
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-5 border-b border-stone-100 bg-stone-50/50 rounded-t-2xl">
           <div>
@@ -134,8 +134,8 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
 	            {mode === 'list' ? (
 	                <div className="space-y-4 h-full">
                     {/* Add New Row */}
-                    <div className="flex gap-2 items-end bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
-                        <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:items-end bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
+                        <div className="w-full sm:flex-1">
                             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1 block font-sans">{t('glossaryModal.termLabel')}</label>
                             <input
                                 value={newTerm}
@@ -145,7 +145,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
                                 onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                             />
                         </div>
-                        <div className="flex-[2]">
+                        <div className="w-full sm:flex-[2]">
                             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1 block font-sans">{t('glossaryModal.definitionLabel')}</label>
                             <input
                                 value={newDef}
@@ -172,12 +172,12 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
                             </div>
                         ) : (
                             terms.map((t) => (
-                                <div key={t.id} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-stone-200 hover:border-stone-300 transition-all group">
+                                <div key={t.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-white p-3 rounded-lg border border-stone-200 hover:border-stone-300 transition-all group">
                                     <div className="flex-1 font-medium text-stone-800 text-sm font-sans">{t.term}</div>
                                     <div className="flex-[2] text-stone-600 text-sm font-serif">{t.definition}</div>
                                     <button
                                         onClick={() => handleDelete(t.id)}
-                                        className="text-stone-300 hover:text-rose-500 p-1.5 rounded opacity-0 group-hover:opacity-100 transition-all"
+                                        className="text-stone-300 hover:text-rose-500 p-1.5 rounded sm:opacity-0 group-hover:opacity-100 transition-all self-end sm:self-auto"
                                     >
                                         <Trash2 size={16}/>
                                     </button>
