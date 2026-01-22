@@ -41,11 +41,11 @@ export default {
     keepMarker: "保留标记",
     keepMarkerTooltip: "保留标记：如果启用，匹配的标记将保留在下一个分块的开头。",
     assist: "Assist",
-    assistTooltip: "支持纯文本（Part 1）、通配符（Part*）或正则表达式（/Part\\s\\w+/i）。点击按钮可使用 AI 生成规则并预览效果。",
+    assistTooltip: "支持纯文本（Part 1）、通配符（Part*）或正则表达式（/Part\\s\\w+/i）。",
     rulePlaceholder: "Part*  or  /Part\\s\\w+/i",
 
     // Batch Size
-    batchSize: "Batch Size",
+    batchSize: "文本块合并数",
     batchSizeTooltip: "将较小的片段组合在一起以提高处理效率。",
 
     // Prompt Section
@@ -141,34 +141,30 @@ export default {
   },
 
   glossaryModal: {
-    title: "术语表管理器",
-    subtitle: "定义术语以在所有分块中保持一致性",
+    title: "术语表管理",
+    subtitle: "定义翻译参考，将注入到有效的系统提示词中。",
 
     // Tabs
     termList: "术语列表",
     bulkImport: "批量导入",
-    glossaryPrompt: "Glossary Prompt",
+    glossaryPrompt: "术语表提示词",
 
     // Term List Tab
     addTerm: "添加术语",
-    termPlaceholder: "术语",
-    definitionPlaceholder: "定义",
-    noTerms: "暂无术语",
-    noTermsDesc: "添加术语以在 AI 处理中保持一致性。",
+    termLabel: "术语",
+    termPlaceholder: "例如：LLM",
+    definitionLabel: "定义 / 翻译",
+    definitionPlaceholder: "例如：大语言模型",
+    noTerms: "尚未定义术语。请在上方添加或使用批量导入。",
 
     // Bulk Import Tab
-    bulkImportDesc: "一次导入多个术语。使用以下格式：",
-    bulkImportFormat: "术语: 定义",
-    bulkImportExample: "示例：",
-    bulkImportExampleLine1: "API: Application Programming Interface",
-    bulkImportExampleLine2: "UI: User Interface",
-    bulkImportPlaceholder: "术语1: 定义1\n术语2: 定义2\n...",
-    importButton: "导入术语",
-    importSuccess: "成功导入 {count} 个术语",
+    bulkImportDesc: "在此粘贴您的术语表。每行一个条目。格式：<b>术语, 定义</b> 或 <b>术语: 定义</b>。支持从 Excel 复制粘贴。",
+    bulkImportPlaceholder: "LLM, 大语言模型\nAgent, 智能体\nRAG, 检索增强生成",
+    parseAndAdd: "解析并添加",
 
     // Glossary Prompt Tab
-    glossaryPromptDesc: "启用术语表时会自动添加此提示词：",
-    glossaryPromptPreview: "请始终使用这些术语定义：",
+    glossaryPromptDesc: "此文本将与匹配的术语一起注入到<b>有效系统提示词</b>中。如果您希望模型适应上下文，请保持简短且非强制性。",
+    resetToDefault: "重置为默认",
 
     // Actions
     clearAll: "清空全部",

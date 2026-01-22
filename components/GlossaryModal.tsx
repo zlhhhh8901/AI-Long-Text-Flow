@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Plus, Trash2, Book, FileSpreadsheet, AlertCircle, MessageSquare, RotateCcw } from 'lucide-react';
 import { GlossaryTerm } from '../types';
 import { DEFAULT_GLOSSARY_PROMPT, mergeGlossaryTerms, normalizeGlossaryKey } from '../services/glossaryService';
+import { useTranslation } from '../locales';
 
 interface GlossaryModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface GlossaryModalProps {
 }
 
 export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, terms, onUpdateTerms, prompt, onUpdatePrompt }) => {
+  const { t } = useTranslation();
   const [newTerm, setNewTerm] = useState('');
   const [newDef, setNewDef] = useState('');
   const [importText, setImportText] = useState('');
@@ -96,9 +98,9 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
           <div>
              <h2 className="text-lg font-bold text-brand-dark flex items-center gap-2 font-sans">
                 <Book size={20} className="text-brand-orange"/>
-                Glossary Management
+                {t('glossaryModal.title')}
              </h2>
-	             <p className="text-xs text-stone-500 mt-1 font-serif">Define translation references to be injected into the effective system prompt.</p>
+	             <p className="text-xs text-stone-500 mt-1 font-serif" dangerouslySetInnerHTML={{ __html: t('glossaryModal.subtitle') }} />
           </div>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-700 hover:bg-stone-200 rounded-full p-1 transition-all">
             <X size={20} />
@@ -107,53 +109,53 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
 
 	        {/* Toolbar */}
 	        <div className="px-5 py-3 border-b border-stone-100 flex gap-2 bg-white">
-	            <button 
+	            <button
 	                onClick={() => setMode('list')}
 	                className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-2 transition-all font-sans ${mode === 'list' ? 'bg-brand-orange/10 text-brand-orange' : 'text-stone-500 hover:bg-stone-50'}`}
 	            >
-	                <Book size={14}/> Term List ({terms.length})
+	                <Book size={14}/> {t('glossaryModal.termList')} ({terms.length})
 	            </button>
-	            <button 
+	            <button
 	                onClick={() => setMode('import')}
 	                className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-2 transition-all font-sans ${mode === 'import' ? 'bg-brand-orange/10 text-brand-orange' : 'text-stone-500 hover:bg-stone-50'}`}
 	            >
-	                <FileSpreadsheet size={14}/> Bulk Import
+	                <FileSpreadsheet size={14}/> {t('glossaryModal.bulkImport')}
 	            </button>
-	            <button 
+	            <button
 	                onClick={() => setMode('prompt')}
 	                className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-2 transition-all font-sans ${mode === 'prompt' ? 'bg-brand-orange/10 text-brand-orange' : 'text-stone-500 hover:bg-stone-50'}`}
 	            >
-	                <MessageSquare size={14}/> Glossary Prompt
+	                <MessageSquare size={14}/> {t('glossaryModal.glossaryPrompt')}
 	            </button>
 	        </div>
 
 	        {/* Content */}
-	        <div className="flex-1 overflow-y-auto p-5 bg-stone-50 custom-scrollbar">
+	        <div className="h-[500px] overflow-y-auto p-5 bg-stone-50 custom-scrollbar">
 	            {mode === 'list' ? (
-	                <div className="space-y-4">
+	                <div className="space-y-4 h-full">
                     {/* Add New Row */}
                     <div className="flex gap-2 items-end bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
                         <div className="flex-1">
-                            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1 block font-sans">Term</label>
-                            <input 
+                            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1 block font-sans">{t('glossaryModal.termLabel')}</label>
+                            <input
                                 value={newTerm}
                                 onChange={(e) => setNewTerm(e.target.value)}
-                                placeholder="e.g. LLM"
+                                placeholder={t('glossaryModal.termPlaceholder')}
                                 className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange outline-none font-serif text-stone-800"
                                 onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                             />
                         </div>
                         <div className="flex-[2]">
-                            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1 block font-sans">Definition / Translation</label>
-                            <input 
+                            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1 block font-sans">{t('glossaryModal.definitionLabel')}</label>
+                            <input
                                 value={newDef}
                                 onChange={(e) => setNewDef(e.target.value)}
-                                placeholder="e.g. Large Language Model"
+                                placeholder={t('glossaryModal.definitionPlaceholder')}
                                 className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange outline-none font-serif text-stone-800"
                                 onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                             />
                         </div>
-                        <button 
+                        <button
                             onClick={handleAdd}
                             disabled={!newTerm.trim() || !newDef.trim()}
                             className="h-[38px] px-4 bg-brand-orange text-white rounded-lg hover:bg-brand-orange/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
@@ -166,14 +168,14 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
                     <div className="space-y-2">
                         {terms.length === 0 ? (
                             <div className="text-center py-8 text-stone-400 text-sm font-serif italic">
-                                No terms defined yet. Add one above or use Bulk Import.
+                                {t('glossaryModal.noTerms')}
                             </div>
                         ) : (
                             terms.map((t) => (
                                 <div key={t.id} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-stone-200 hover:border-stone-300 transition-all group">
                                     <div className="flex-1 font-medium text-stone-800 text-sm font-sans">{t.term}</div>
                                     <div className="flex-[2] text-stone-600 text-sm font-serif">{t.definition}</div>
-                                    <button 
+                                    <button
                                         onClick={() => handleDelete(t.id)}
                                         className="text-stone-300 hover:text-rose-500 p-1.5 rounded opacity-0 group-hover:opacity-100 transition-all"
                                     >
@@ -188,41 +190,38 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
 	                <div className="h-full flex flex-col">
                     <div className="bg-brand-blue/10 border border-brand-blue/20 rounded-lg p-3 mb-4 flex gap-2 text-xs text-brand-blue">
                         <AlertCircle size={16} className="shrink-0 mt-0.5"/>
-                        <p className="font-serif">Paste your glossary here. One entry per line. Format: <b>Term, Definition</b> or <b>Term: Definition</b>. Works with copy-paste from Excel.</p>
+                        <p className="font-serif" dangerouslySetInnerHTML={{ __html: t('glossaryModal.bulkImportDesc') }} />
                     </div>
-                    <textarea 
+                    <textarea
                         value={importText}
                         onChange={(e) => setImportText(e.target.value)}
                         className="flex-1 w-full p-4 border border-stone-200 rounded-xl resize-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange outline-none text-sm font-mono bg-white"
-                        placeholder={`LLM, Large Language Model\nAgent, 智能体\nRAG, Retrieval Augmented Generation`}
+                        placeholder={t('glossaryModal.bulkImportPlaceholder')}
                     />
-                    <button 
+                    <button
                         onClick={handleBulkImport}
                         disabled={!importText.trim()}
                         className="mt-4 w-full py-2.5 bg-brand-orange text-white font-bold rounded-lg hover:bg-brand-orange/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 font-sans"
                     >
-                        <FileSpreadsheet size={16}/> Parse and Add
+                        <FileSpreadsheet size={16}/> {t('glossaryModal.parseAndAdd')}
                     </button>
 	                </div>
 	            ) : (
-	                <div className="space-y-4">
-	                    <div className="bg-stone-50 border border-stone-200 rounded-lg p-3 text-xs text-stone-600 font-serif leading-relaxed">
-	                        This text is injected alongside matched glossary terms into the <b>effective system prompt</b>.
-	                        Keep it short and non-mandatory if you want the model to adapt to context.
-	                    </div>
+	                <div className="h-full flex flex-col">
+	                    <div className="bg-stone-50 border border-stone-200 rounded-lg p-3 text-xs text-stone-600 font-serif leading-relaxed mb-4" dangerouslySetInnerHTML={{ __html: t('glossaryModal.glossaryPromptDesc') }} />
 	                    <textarea
 	                        value={prompt}
 	                        onChange={(e) => onUpdatePrompt(e.target.value)}
-	                        className="w-full min-h-[160px] p-4 border border-stone-200 rounded-xl resize-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange outline-none text-sm font-serif bg-white text-stone-800 leading-relaxed"
+	                        className="flex-1 w-full p-4 border border-stone-200 rounded-xl resize-none focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange outline-none text-sm font-serif bg-white text-stone-800 leading-relaxed"
 	                        placeholder={DEFAULT_GLOSSARY_PROMPT}
 	                    />
-	                    <div className="flex justify-end">
+	                    <div className="flex justify-end mt-4">
 	                        <button
 	                            onClick={() => onUpdatePrompt(DEFAULT_GLOSSARY_PROMPT)}
 	                            className="px-3 py-2 text-xs font-semibold rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 transition-colors flex items-center gap-2 font-sans"
-	                            title="Reset to default"
+	                            title={t('glossaryModal.resetToDefault')}
 	                        >
-	                            <RotateCcw size={14}/> Reset to default
+	                            <RotateCcw size={14}/> {t('glossaryModal.resetToDefault')}
 	                        </button>
 	                    </div>
 	                </div>
@@ -232,7 +231,7 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, t
         {/* Footer */}
         <div className="p-5 border-t border-stone-100 flex justify-end gap-3 rounded-b-2xl bg-white font-sans">
           <button onClick={onClose} className="px-6 py-2.5 bg-stone-100 text-stone-700 font-bold rounded-lg hover:bg-stone-200 transition-colors">
-            Done
+            {t('common.done')}
           </button>
         </div>
       </div>

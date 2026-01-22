@@ -41,11 +41,11 @@ export default {
     keepMarker: "Keep marker",
     keepMarkerTooltip: "Keep marker: if enabled, the matched marker stays at the start of the next chunk.",
     assist: "Assist",
-    assistTooltip: "Supports plain text (Part 1), wildcards (Part*), or regex (/Part\\s\\w+/i). Click to use AI for rule generation and preview.",
+    assistTooltip: "Supports plain text (Part 1), wildcards (Part*), or regex (/Part\\s\\w+/i).",
     rulePlaceholder: "Part*  or  /Part\\s\\w+/i",
 
     // Batch Size
-    batchSize: "Batch Size",
+    batchSize: "Chunks to Combine",
     batchSizeTooltip: "Combine smaller pieces to flow together efficiently.",
 
     // Prompt Section
@@ -141,8 +141,8 @@ export default {
   },
 
   glossaryModal: {
-    title: "Glossary Manager",
-    subtitle: "Define terms to maintain consistency across all chunks",
+    title: "Glossary Management",
+    subtitle: "Define translation references to be injected into the effective system prompt.",
 
     // Tabs
     termList: "Term List",
@@ -151,24 +151,20 @@ export default {
 
     // Term List Tab
     addTerm: "Add Term",
-    termPlaceholder: "Term",
-    definitionPlaceholder: "Definition",
-    noTerms: "No terms yet",
-    noTermsDesc: "Add terms to maintain consistency in your AI processing.",
+    termLabel: "Term",
+    termPlaceholder: "e.g. LLM",
+    definitionLabel: "Definition / Translation",
+    definitionPlaceholder: "e.g. Large Language Model",
+    noTerms: "No terms defined yet. Add one above or use Bulk Import.",
 
     // Bulk Import Tab
-    bulkImportDesc: "Import multiple terms at once. Use the format:",
-    bulkImportFormat: "Term: Definition",
-    bulkImportExample: "Example:",
-    bulkImportExampleLine1: "API: Application Programming Interface",
-    bulkImportExampleLine2: "UI: User Interface",
-    bulkImportPlaceholder: "Term1: Definition1\nTerm2: Definition2\n...",
-    importButton: "Import Terms",
-    importSuccess: "Successfully imported {count} terms",
+    bulkImportDesc: "Paste your glossary here. One entry per line. Format: <b>Term, Definition</b> or <b>Term: Definition</b>. Works with copy-paste from Excel.",
+    bulkImportPlaceholder: "LLM, Large Language Model\nAgent, 智能体\nRAG, Retrieval Augmented Generation",
+    parseAndAdd: "Parse and Add",
 
     // Glossary Prompt Tab
-    glossaryPromptDesc: "This prompt is automatically added when glossary is enabled:",
-    glossaryPromptPreview: "Please use these term definitions consistently:",
+    glossaryPromptDesc: "This text is injected alongside matched glossary terms into the <b>effective system prompt</b>. Keep it short and non-mandatory if you want the model to adapt to context.",
+    resetToDefault: "Reset to default",
 
     // Actions
     clearAll: "Clear All",
