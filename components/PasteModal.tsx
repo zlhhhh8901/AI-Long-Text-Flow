@@ -22,9 +22,23 @@ export const PasteModal: React.FC<PasteModalProps> = ({ isOpen, onClose, onImpor
     }
   };
 
+  const handleBackdropClick = () => {
+    if (text.trim()) {
+      onImport(text);
+      setText('');
+    }
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/20 backdrop-blur-sm p-4 sm:p-6">
-      <div className="bg-white rounded-2xl shadow-xl w-[95vw] sm:w-full max-w-3xl flex flex-col max-h-[85vh] animate-fade-in border border-stone-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/20 backdrop-blur-sm p-4 sm:p-6"
+      onClick={handleBackdropClick}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-xl w-[95vw] sm:w-full max-w-3xl flex flex-col max-h-[85vh] animate-fade-in border border-stone-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center p-4 sm:p-5 border-b border-stone-100">
           <h2 className="text-base sm:text-lg font-bold text-brand-dark flex items-center gap-2 font-sans">
             <div className="bg-brand-orange/10 p-2 rounded-lg">

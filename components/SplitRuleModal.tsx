@@ -177,8 +177,14 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/20 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-[95vw] sm:w-full max-w-3xl flex flex-col max-h-[85vh] animate-fade-in border border-stone-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/20 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-xl w-[95vw] sm:w-full max-w-3xl flex flex-col max-h-[85vh] animate-fade-in border border-stone-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center p-4 sm:p-5 border-b border-stone-100 bg-stone-50/50 rounded-t-2xl">
           <div>
             <h2 className="text-lg font-bold text-brand-dark flex items-center gap-2 font-sans">

@@ -39,8 +39,14 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, confi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/20 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-lg w-[95vw] sm:w-full max-w-md overflow-hidden animate-fade-in transform transition-all scale-100 border border-stone-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/20 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-lg w-[95vw] sm:w-full max-w-md overflow-hidden animate-fade-in transform transition-all scale-100 border border-stone-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="bg-stone-50 border-b border-stone-100 px-6 py-5 flex justify-between items-center">
           <div>
             <h2 className="text-lg font-bold text-brand-dark flex items-center gap-2 font-sans">
