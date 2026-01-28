@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { SplitConfig, SplitMode, GlossaryTerm } from '../types';
 import {
   AlignJustify,
@@ -64,6 +65,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose
 }) => {
   const { t } = useTranslation();
+  const promptTextareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const [isPromptOverlayOpen, setIsPromptOverlayOpen] = React.useState(false);
+
+  const isPromptOverflowing = React.useCallback(() => {
+    const el = promptTextareaRef.current;
+    if (!el) return false;
+    return el.scrollHeight > el.clientHeight + 4;
+  }, []);
+
+  const openPromptOverlayIfNeeded = React.useCallback(() => {
+    if (isMobile) return;
+    if (isPromptOverflowing()) setIsPromptOverlayOpen(true);
+  }, [isMobile, isPromptOverflowing]);
+
+  React.useEffect(() => {
+    if (!isPromptOverlayOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsPromptOverlayOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isPromptOverlayOpen]);
 
   return (
     <div className={`
@@ -290,7 +313,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 	                <div className="relative group">
 	                    <textarea
 	                        value={systemPrompt}
-	                        onChange={(e) => setSystemPrompt(e.target.value)}
+	                        onChange={(e) => {
+                          setSystemPrompt(e.target.value);
+                          if (document.activeElement === promptTextareaRef.current) {
+                            openPromptOverlayIfNeeded();
+                          }
+                        }}
+                          onFocus={openPromptOverlayIfNeeded}
+                          ref={promptTextareaRef}
 	                        className="w-full h-32 px-4 py-4 bg-white border border-stone-200 rounded-xl text-sm text-stone-700 focus:ring-2 focus:ring-brand-orange/20 focus:border-brand-orange transition-all resize-none leading-7 placeholder:text-stone-300 shadow-sm font-serif outline-none"
 	                        placeholder={t('sidebar.promptPlaceholder')}
 	                    />
@@ -326,6 +356,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
         </section>
+
+        {isPromptOverlayOpen && !isMobile && createPortal(
+          <div
+            className="fixed inset-0 z-[999]"
+            onClick={() => setIsPromptOverlayOpen(false)}
+          >
+            <div className="w-full h-full flex items-center justify-center pl-80">
+              <div
+                className="relative w-[min(92vw,960px)] max-h-[82vh]"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <textarea
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  autoFocus
+                  className="w-full h-[62vh] max-h-[62vh] px-4 py-4 bg-white/55 border border-transparent rounded-[32px] text-[16px] text-stone-900 focus:ring-0 focus:border-transparent transition-all resize-none leading-7 placeholder:text-stone-400 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.35),_0_10px_24px_-16px_rgba(0,0,0,0.2)] font-serif outline-none backdrop-blur-2xl [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  placeholder={t('sidebar.promptPlaceholder')}
+                />
+              </div>
+            </div>
+          </div>
+        , document.body)}
 
         {/* Execution Section */}
         <section className="space-y-4">
