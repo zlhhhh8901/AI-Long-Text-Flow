@@ -9,6 +9,7 @@ interface SplitRuleModalProps {
   isOpen: boolean;
   onClose: () => void;
   appConfig: AppConfig;
+  sourceText: string;
   splitConfig: SplitConfig;
   onApply: (config: SplitConfig) => void;
 }
@@ -64,7 +65,7 @@ const getChunkPreview = (content: string) => {
   return `${head}${head.length > 240 ? '…' : '\n…'}`;
 };
 
-export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose, appConfig, splitConfig, onApply }) => {
+export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose, appConfig, sourceText, splitConfig, onApply }) => {
   const { t } = useTranslation();
   const [candidate, setCandidate] = useState<SplitConfig>(splitConfig);
   const [aiRequest, setAiRequest] = useState('');
@@ -80,7 +81,12 @@ export const SplitRuleModal: React.FC<SplitRuleModalProps> = ({ isOpen, onClose,
     setAiError(null);
     setIsGenerating(false);
     setJustGenerated(false);
-  }, [isOpen, splitConfig]);
+    if (sourceText.trim()) {
+      setSampleText(sourceText);
+    } else {
+      setSampleText('');
+    }
+  }, [isOpen, splitConfig, sourceText]);
 
   useEffect(() => {
     if (justGenerated && ruleRef.current) {

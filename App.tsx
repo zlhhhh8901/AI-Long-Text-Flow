@@ -634,6 +634,7 @@ function App() {
           isOpen={isSplitRuleModalOpen}
           onClose={() => setIsSplitRuleModalOpen(false)}
           appConfig={appConfig}
+          sourceText={sourceText}
           splitConfig={splitConfig}
           onApply={setSplitConfig}
         />
