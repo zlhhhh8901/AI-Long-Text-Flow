@@ -219,6 +219,25 @@ export default {
     importButton: "Import",
   },
 
+  mergeExportModal: {
+    mergeTitle: "Merge into Input",
+    exportTitle: "Custom Export",
+    subtitle: "Add optional prefixes and separators for each request/response pair.",
+    requestPrefixLabel: "Request Prefix",
+    responsePrefixLabel: "Response Prefix",
+    pairSeparatorLabel: "Between Pairs",
+    requestPrefixPlaceholder: "Optional text before each request",
+    responsePrefixPlaceholder: "Optional text before each response",
+    pairSeparatorPlaceholder: "\\n\\n (blank line)",
+    escapeHint: "Supports \\n for line breaks.",
+    previewTitle: "Preview",
+    previewEmpty: "No completed results to preview.",
+    previewCount: "Preview: {count}",
+    availableCount: "Available: {count}",
+    mergeAction: "Merge into Input",
+    exportAction: "Export",
+  },
+
   app: {
     // Toolbar
     settings: "Settings",

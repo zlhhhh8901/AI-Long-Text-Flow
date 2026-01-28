@@ -6,11 +6,12 @@ import { PasteModal } from './components/PasteModal';
 import { GlossaryModal } from './components/GlossaryModal';
 import { SplitRuleModal } from './components/SplitRuleModal';
 import { ResultCard } from './components/ResultCard';
-import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_SPLIT_CONFIG, ProcessingStatus, SplitConfig, GlossaryTerm } from './types';
+import { MergeExportModal } from './components/MergeExportModal';
+import { AppConfig, ChunkItem, DEFAULT_CONFIG, DEFAULT_MERGE_CONFIG, DEFAULT_SPLIT_CONFIG, GlossaryTerm, MergeConfig, ProcessingStatus, SplitConfig } from './types';
 import { splitText } from './services/splitterService';
 import { processChunkWithLLM, initializeSession, LLMSession } from './services/llmService';
 import { buildEffectiveSystemPrompt, DEFAULT_GLOSSARY_PROMPT, findMatchingTerms, formatGlossarySection, mergeGlossaryTerms } from './services/glossaryService';
-import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, FileText, MessageSquare, Feather, RefreshCw, Github, Menu } from 'lucide-react';
+import { Settings, Play, Pause, Trash2, Upload, Clipboard, Download, FileText, MessageSquare, Feather, RefreshCw, Menu, ArrowRightLeft, SlidersHorizontal } from 'lucide-react';
 import { TranslationProvider } from './locales';
 
 function App() {
@@ -66,6 +67,25 @@ function App() {
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [mergeModalMode, setMergeModalMode] = useState<'merge' | 'export' | null>(null);
+  const [mergeConfig, setMergeConfig] = useState<MergeConfig>(() => {
+    const saved = localStorage.getItem('ai-flow-merge-config');
+    if (!saved) return DEFAULT_MERGE_CONFIG;
+    try {
+      const parsed = JSON.parse(saved);
+      if (!parsed || typeof parsed !== 'object') return DEFAULT_MERGE_CONFIG;
+      return {
+        ...DEFAULT_MERGE_CONFIG,
+        requestPrefix: typeof parsed.requestPrefix === 'string' ? parsed.requestPrefix : DEFAULT_MERGE_CONFIG.requestPrefix,
+        responsePrefix: typeof parsed.responsePrefix === 'string' ? parsed.responsePrefix : DEFAULT_MERGE_CONFIG.responsePrefix,
+        pairSeparator: typeof parsed.pairSeparator === 'string' ? parsed.pairSeparator : DEFAULT_MERGE_CONFIG.pairSeparator,
+      };
+    } catch {
+      return DEFAULT_MERGE_CONFIG;
+    }
+  });
+  const [mergeDraft, setMergeDraft] = useState<MergeConfig>(mergeConfig);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Mobile state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -74,6 +94,7 @@ function App() {
   const toolbarScrollRef = useRef<HTMLDivElement | null>(null);
   const exportButtonRef = useRef<HTMLButtonElement | null>(null);
   const [exportMenuPosition, setExportMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Refs for Queue Management
   const isProcessingRef = useRef(false);
@@ -147,6 +168,14 @@ function App() {
       scroller?.removeEventListener('scroll', updateExportMenuPosition);
     };
   }, [isExportMenuOpen, updateExportMenuPosition]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Re-split when source text or config changes
   useEffect(() => {
@@ -254,6 +283,38 @@ function App() {
     startedRequestsRef.current.clear();
   };
 
+  const normalizeMergeValue = (value: string) => value.replace(/\\n/g, '\n');
+
+  const buildMergedText = (items: ChunkItem[], config: MergeConfig) => {
+    const requestPrefix = normalizeMergeValue(config.requestPrefix);
+    const responsePrefix = normalizeMergeValue(config.responsePrefix);
+    const pairSeparator = normalizeMergeValue(config.pairSeparator);
+
+    return items
+      .map(item => `${requestPrefix}${item.rawContent}\n\n${responsePrefix}${item.result ?? ''}`)
+      .join(pairSeparator);
+  };
+
+  const persistMergeConfig = (config: MergeConfig) => {
+    setMergeConfig(config);
+    localStorage.setItem('ai-flow-merge-config', JSON.stringify(config));
+  };
+
+  const openMergeModal = (mode: 'merge' | 'export') => {
+    setMergeDraft(mergeConfig);
+    setMergeModalMode(mode);
+  };
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 2500);
+  }, []);
+
   const handleExport = (includeInput: boolean) => {
     const content = chunks
       .filter(c => c.result)
@@ -275,6 +336,39 @@ function App() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     setIsExportMenuOpen(false);
+  };
+
+  const handleCustomExport = (items: ChunkItem[], config: MergeConfig) => {
+    const content = buildMergedText(items, config);
+    if (!content.trim()) return;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ai-flow-export-custom.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleMergeConfirm = (items: ChunkItem[], config: MergeConfig) => {
+    const content = buildMergedText(items, config);
+    if (!content.trim()) return;
+
+    persistMergeConfig(config);
+    setSourceText(content);
+    setIsProcessing(false);
+    setGlobalError(null);
+    setMergeModalMode(null);
+    showToast('Merged into input.');
+  };
+
+  const handleExportConfirm = (items: ChunkItem[], config: MergeConfig) => {
+    persistMergeConfig(config);
+    handleCustomExport(items, config);
+    setMergeModalMode(null);
   };
 
   // --- Processing Engine ---
@@ -443,11 +537,29 @@ function App() {
 	    const glossarySection = formatGlossarySection(matches, glossaryPrompt);
 	    return buildEffectiveSystemPrompt(appConfig.systemPrompt, glossarySection);
 	  }, [appConfig.systemPrompt, glossaryEnabled, glossaryPrompt, glossaryTerms, isSessionMode, sourceText]);
-	  
-	  const completedCount = chunks.filter(c => c.status === ProcessingStatus.SUCCESS).length;
+
+    const completedChunks = useMemo(() => {
+      return [...chunks]
+        .filter(c => c.status === ProcessingStatus.SUCCESS && typeof c.result === 'string')
+        .sort((a, b) => a.index - b.index);
+    }, [chunks]);
+
+	  const completedCount = completedChunks.length;
 	  const totalCount = chunks.length;
 	  const progress = totalCount === 0 ? 0 : (completedCount / totalCount) * 100;
       const isAllSuccess = totalCount > 0 && chunks.every(c => c.status === ProcessingStatus.SUCCESS);
+
+      const mergePreview = useMemo(() => {
+        if (!mergeModalMode) return '';
+        const previewItems = completedChunks.slice(0, 2);
+        if (previewItems.length === 0) return '';
+        return buildMergedText(previewItems, mergeDraft);
+      }, [completedChunks, mergeDraft, mergeModalMode]);
+
+      const mergePreviewCount = useMemo(() => {
+        if (!mergeModalMode) return 0;
+        return Math.min(2, completedChunks.length);
+      }, [completedChunks.length, mergeModalMode]);
 
   return (
     <TranslationProvider>
@@ -529,7 +641,7 @@ function App() {
 	      <main className="flex-1 flex flex-col h-full min-w-0 z-10 relative">
         {/* Floating Toolbar */}
         <div className={`px-6 py-4 shrink-0 overflow-x-auto custom-scrollbar ${isMobile ? 'pt-20' : ''}`} ref={toolbarScrollRef}>
-            <header className="bg-white border border-stone-200 rounded-xl flex flex-wrap items-center justify-between px-4 sm:px-6 py-3 sm:py-4 shadow-sm gap-3 sm:gap-4 transition-all hover:shadow-md min-w-max">
+            <header className="bg-white border border-stone-200 rounded-xl flex flex-nowrap items-center justify-between px-4 sm:px-6 py-3 sm:py-4 shadow-sm gap-3 sm:gap-4 transition-all hover:shadow-md min-w-max">
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <button
                     onClick={handleOpenManualImport}
@@ -560,7 +672,7 @@ function App() {
 	                )}
 	                {chunks.length > 0 && (
 	                    <div className="flex items-center gap-4 sm:gap-6 animate-fade-in">
-	                        <div className="hidden md:flex flex-col w-32 sm:w-36 lg:w-52 xl:w-64 transition-all duration-500 ease-in-out">
+                        <div className="hidden lg:flex flex-col w-32 sm:w-36 lg:w-44 xl:w-56 transition-all duration-500 ease-in-out">
 	                            <div className="flex justify-between text-xs mb-1.5 uppercase tracking-wider font-bold font-sans">
 	                                <span className="text-stone-500 truncate mr-2">{isParallel ? 'Parallel' : (isContextual ? 'Contextual' : 'Serial')}</span>
 	                                <span className="text-stone-800">{Math.round(progress)}%</span>
@@ -585,7 +697,7 @@ function App() {
                     </div>
                 )}
 
-                <div className="h-8 w-px bg-stone-200 mx-1"></div>
+                <div className="hidden xl:block h-8 w-px bg-stone-200 mx-1"></div>
 
                 <button
                     onClick={isAllSuccess && !isProcessing ? handleResetResults : handleStartPause}
@@ -598,18 +710,29 @@ function App() {
                 >
                     {isProcessing ? (
                       <>
-                        <Pause size={16} fill="currentColor" /> <span className="hidden sm:inline">Pause</span>
+                        <Pause size={16} fill="currentColor" /> <span className="hidden lg:inline">Pause</span>
                       </>
                     ) : isAllSuccess ? (
                       <>
-                        <RefreshCw size={16} /> <span className="hidden sm:inline">Clear Results</span>
+                        <RefreshCw size={16} /> <span className="hidden lg:inline">Clear Results</span>
                       </>
                     ) : (
                       <>
-                        <Play size={16} fill="currentColor" /> <span className="hidden sm:inline">Start Flow</span>
+                        <Play size={16} fill="currentColor" /> <span className="hidden lg:inline">Start Flow</span>
                       </>
                     )}
                 </button>
+
+                {completedCount > 0 && (
+                    <button
+                        onClick={() => openMergeModal('merge')}
+                        disabled={isProcessing}
+                        className="flex items-center gap-2 px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg font-semibold text-stone-600 bg-white border border-stone-200 hover:bg-stone-50 hover:text-brand-orange transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-sans"
+                        title="Merge Results into Input"
+                    >
+                        <ArrowRightLeft size={16} /> <span className="hidden lg:inline">Merge</span>
+                    </button>
+                )}
 
                 <button onClick={() => setIsSettingsOpen(true)} className="p-2 sm:p-2.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors">
                     <Settings size={20} />
@@ -642,6 +765,16 @@ function App() {
                   className="w-full text-left px-4 py-3 text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-brand-orange transition-colors flex items-center gap-2 font-sans"
                 >
                   <MessageSquare size={14} /> Source & Results
+                </button>
+                <div className="h-px bg-stone-50"></div>
+                <button
+                  onClick={() => {
+                    setIsExportMenuOpen(false);
+                    openMergeModal('export');
+                  }}
+                  className="w-full text-left px-4 py-3 text-xs font-medium text-stone-600 hover:bg-stone-50 hover:text-brand-orange transition-colors flex items-center gap-2 font-sans"
+                >
+                  <SlidersHorizontal size={14} /> Custom
                 </button>
               </div>
             </>,
@@ -705,6 +838,30 @@ function App() {
             )}
         </div>
       </main>
+
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-white border border-stone-200 shadow-lg rounded-full px-4 py-2 text-xs font-semibold text-stone-600 animate-fade-in">
+          {toastMessage}
+        </div>
+      )}
+
+      <MergeExportModal
+        isOpen={mergeModalMode !== null}
+        mode={mergeModalMode ?? 'merge'}
+        config={mergeDraft}
+        pairCount={completedChunks.length}
+        previewCount={mergePreviewCount}
+        preview={mergePreview}
+        onChange={setMergeDraft}
+        onClose={() => setMergeModalMode(null)}
+        onConfirm={() => {
+          if (mergeModalMode === 'export') {
+            handleExportConfirm(completedChunks, mergeDraft);
+          } else {
+            handleMergeConfirm(completedChunks, mergeDraft);
+          }
+        }}
+      />
 
       <ApiKeyModal 
         isOpen={isSettingsOpen} 

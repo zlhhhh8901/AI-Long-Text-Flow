@@ -219,6 +219,25 @@ export default {
     importButton: "导入",
   },
 
+  mergeExportModal: {
+    mergeTitle: "合并到输入框",
+    exportTitle: "自定义导出",
+    subtitle: "为每组请求/回复添加可选前缀与分隔符。",
+    requestPrefixLabel: "请求前缀",
+    responsePrefixLabel: "回复前缀",
+    pairSeparatorLabel: "组间分隔符",
+    requestPrefixPlaceholder: "可选：每个请求前添加内容",
+    responsePrefixPlaceholder: "可选：每个回复前添加内容",
+    pairSeparatorPlaceholder: "\\n\\n（空行）",
+    escapeHint: "支持使用 \\n 表示换行。",
+    previewTitle: "预览",
+    previewEmpty: "暂无可预览的结果。",
+    previewCount: "当前预览：{count} 组",
+    availableCount: "当前可用：{count} 组",
+    mergeAction: "合并到输入框",
+    exportAction: "导出",
+  },
+
   app: {
     // Toolbar
     settings: "设置",

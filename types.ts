@@ -62,6 +62,12 @@ export interface SplitConfig {
   batchSize: number; // How many chunks to combine per request
 }
 
+export interface MergeConfig {
+  requestPrefix: string;
+  responsePrefix: string;
+  pairSeparator: string;
+}
+
 export const DEFAULT_CONFIG: AppConfig = {
   provider: 'gemini',
   apiKey: '',
@@ -82,4 +88,10 @@ export const DEFAULT_SPLIT_CONFIG: SplitConfig = {
   customKeepSeparator: true,
   customHeadingLevel: 2,
   batchSize: 1,
+};
+
+export const DEFAULT_MERGE_CONFIG: MergeConfig = {
+  requestPrefix: '',
+  responsePrefix: '',
+  pairSeparator: '\\n\\n',
 };
